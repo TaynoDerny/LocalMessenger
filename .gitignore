@@ -1,0 +1,17 @@
+# Сборка и временные файлы CMake
+build/
+CMakeUserPresets.json
+.cmake/
+
+# База данных (у сервера она создастся сама при запуске)
+Server/build/
+Server/messenger.sqlite
+Client/build/
+
+# Настройки VS Code
+.vscode/
+
+# Специфичные файлы операционной системы (Arch Linux / Linux)
+*.swp
+*~
+.DS_Store
