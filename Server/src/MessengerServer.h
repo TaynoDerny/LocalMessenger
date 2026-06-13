@@ -2,7 +2,9 @@
 #include <QObject>
 #include <QTcpServer>
 #include <QTcpSocket>
+#include <QList>
 #include "DatabaseManager.h"
+
 
 class MessengerServer : public QObject {
     Q_OBJECT // Макрос, чтобы работали сигналы
@@ -13,6 +15,7 @@ public:
 private:
     QTcpServer *server;
     DatabaseManager dbManager; // Наш класс для работы с SQLite
+    QList<QTcpSocket*> clients; // Cписок подключенных клиентов 
 
 private slots:
     void handleNewConnection();

@@ -8,6 +8,8 @@ public:
     explicit MessengerClient(QObject *parent = nullptr);
     void connectToServer(const QString& ip, quint16 port);
     void sendAuthData(const QString& login, const QString& password);
+    void sendMessage(const QString& text);
+
 
 private:
     QTcpSocket *socket;

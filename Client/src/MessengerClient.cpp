@@ -30,7 +30,6 @@ void MessengerClient::handleConnected() {
     // Для теста сразу после подключения отправляем логин и пароль
     sendAuthData("admin", "1234");
 }
-
 void MessengerClient::handleReadyRead() {
     QByteArray data = socket->readAll();
     QJsonDocument doc = QJsonDocument::fromJson(data);
@@ -40,8 +39,14 @@ void MessengerClient::handleReadyRead() {
 
         if (type == "auth_success") {
             qDebug() << "СЕРВЕР ОТВЕТИЛ: Доступ разрешен! Можно открывать окно чатов.";
+            sendMessage("Всем привет! Я в чате!");
         } else if (type == "auth_error") {
             qDebug() << "СЕРВЕР ОТВЕТИЛ: Неверный логин или пароль!";
+        } 
+        // ДОБАВЛЯЕМ ВОТ ЭТОТ БЛОК:
+        else if (type == "message") {
+            QString text = doc.object()["text"].toString();
+            qDebug() << "НОВОЕ СООБЩЕНИЕ В ЧАТЕ:" << text;
         }
     } else {
         qDebug() << "КЛИЕНТ: Получены странные данные (не JSON):" << data;
@@ -50,4 +55,13 @@ void MessengerClient::handleReadyRead() {
 
 void MessengerClient::handleError(QAbstractSocket::SocketError socketError) {
     qDebug() << "КЛИЕНТ ОШИБКА:" << socket->errorString();
+}
+
+void MessengerClient::sendMessage(const QString& text) {
+    QJsonObject json;
+    json["type"] = "message";
+    json["text"] = text;
+
+    QJsonDocument doc(json);
+    socket->write(doc.toJson(QJsonDocument::Compact));
 }

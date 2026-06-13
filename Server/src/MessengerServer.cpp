@@ -21,6 +21,8 @@ void MessengerServer::handleNewConnection() {
     QTcpSocket *clientSocket = server->nextPendingConnection();
     qDebug() << "СЕРВЕР: Новый клиент подключился!";
 
+    clients.append(clientSocket); // добавляем клиента
+
     // Привязываем чтение и отключение
     connect(clientSocket, &QTcpSocket::readyRead, this, &MessengerServer::handleReadyRead);
     connect(clientSocket, &QTcpSocket::disconnected, this, &MessengerServer::handleDisconnect);
@@ -54,6 +56,22 @@ void MessengerServer::handleReadyRead() {
                 clientSocket->write(QJsonDocument(response).toJson(QJsonDocument::Compact));
             }
         }
+        else if (json["type"].toString() == "message") {
+            QString text = json["text"].toString();
+            qDebug() << "СЕРВЕР ПОЛУЧИЛ СООБЩЕНИЕ:" << text;
+            qDebug() << "СЕРВЕР: Рассылаю всем...";
+
+            // Собираем JSON обратно, чтобы отправить клиентам
+            QJsonObject response;
+            response["type"] = "message";
+            response["text"] = text;
+            QByteArray responseData = QJsonDocument(response).toJson(QJsonDocument::Compact);
+
+            // Пробегаемся по списку и отправляем каждому!
+            for (QTcpSocket *client : std::as_const(clients)) {
+                client->write(responseData);
+            }
+        }
     }
 }
 
@@ -62,5 +80,6 @@ void MessengerServer::handleDisconnect() {
     if (!clientSocket) return;
     
     qDebug() << "СЕРВЕР: Клиент отключился.";
+    clients.removeOne(clientSocket); // Удаление из списка  
     clientSocket->deleteLater();
 }
