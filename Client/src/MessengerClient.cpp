@@ -24,6 +24,16 @@ void MessengerClient::sendAuthData(const QString& login, const QString& password
     QJsonDocument doc(json);
     socket->write(doc.toJson(QJsonDocument::Compact));
 }
+// ОТПРАВКА ДАННЫХ РЕГЕСТРАЦИИ 
+void MessengerClient::sendRegisterData(const QString& login, const QString& password) {
+    QJsonObject json;
+    json["type"] = "register";
+    json["login"] = login;
+    json["password"] = password;
+
+    QJsonDocument doc(json);
+    socket->write(doc.toJson(QJsonDocument::Compact));
+}
 
 void MessengerClient::handleConnected() {
     qDebug() << "КЛИЕНТ: Успешно подключено к серверу!";
@@ -39,14 +49,28 @@ void MessengerClient::handleReadyRead() {
 
         if (type == "auth_success") {
             qDebug() << "СЕРВЕР ОТВЕТИЛ: Доступ разрешен! Можно открывать окно чатов.";
-            sendMessage("Всем привет! Я в чате!");
+            
+            // Как только админ успешно зашел, он отправляет запрос на регистрацию нового юзера
+           // sendRegisterData("user2", "5678"); 
+            
+            //sendMessage("Всем привет! Я в чате!");
         } else if (type == "auth_error") {
             qDebug() << "СЕРВЕР ОТВЕТИЛ: Неверный логин или пароль!";
         } 
-        // ДОБАВЛЯЕМ ВОТ ЭТОТ БЛОК:
+
+        else if (type == "register_success") {
+            qDebug() << "КЛИЕНТ: Регистрация прошла успешно! Теперь можно входить.";
+        } 
+        else if (type == "register_error") {
+            qDebug() << "КЛИЕНТ: Ошибка регистрации! Возможно, такое имя уже занято.";
+        }
         else if (type == "message") {
+            QString sender = doc.object()["sender"].toString(); // Достаем имя
             QString text = doc.object()["text"].toString();
-            qDebug() << "НОВОЕ СООБЩЕНИЕ В ЧАТЕ:" << text;
+            
+            qDebug() << "-----------------------------";
+            qDebug() << "[" << sender << "]:" << text; // Выводим текст сообщения от 
+            qDebug() << "-----------------------------";
         }
     } else {
         qDebug() << "КЛИЕНТ: Получены странные данные (не JSON):" << data;

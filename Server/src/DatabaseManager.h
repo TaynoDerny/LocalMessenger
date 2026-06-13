@@ -7,6 +7,7 @@ class DatabaseManager {
 public:
     DatabaseManager();
     bool checkUser(const QString& login, const QString& password);
+    bool registerUser(const QString& login, const QString& password);
 private:
     QSqlDatabase db;
 };

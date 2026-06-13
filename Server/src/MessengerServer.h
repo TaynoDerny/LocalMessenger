@@ -2,7 +2,7 @@
 #include <QObject>
 #include <QTcpServer>
 #include <QTcpSocket>
-#include <QList>
+#include <QHash>
 #include "DatabaseManager.h"
 
 
@@ -15,7 +15,7 @@ public:
 private:
     QTcpServer *server;
     DatabaseManager dbManager; // Наш класс для работы с SQLite
-    QList<QTcpSocket*> clients; // Cписок подключенных клиентов 
+    QHash<QTcpSocket*, QString> clients; // указатель на сокет -> Имя пользователя (Логин) подключенных клиентов 
 
 private slots:
     void handleNewConnection();

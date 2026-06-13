@@ -1,3 +1,5 @@
+#include <QSqlQuery>
+#include <QSqlError>
 #include "DatabaseManager.h"
 
 DatabaseManager::DatabaseManager() {
@@ -16,4 +18,19 @@ bool DatabaseManager::checkUser(const QString& login, const QString& password) {
     query.bindValue(":login", login);
     query.bindValue(":password", password);
     return query.exec() && query.next();
+}
+
+bool DatabaseManager::registerUser(const QString& login, const QString& password) {
+    QSqlQuery query;
+    // Используем правильные названия колонок
+    query.prepare("INSERT INTO Users (login, password_hash, is_admin) VALUES (:login, :password, 0)");
+    query.bindValue(":login", login);
+    query.bindValue(":password", password);
+
+    if (!query.exec()) {
+        qDebug() << "БАЗА ДАННЫХ: Ошибка регистрации пользователя:" << query.lastError().text();
+        return false; 
+    }
+    
+    return true;
 }
