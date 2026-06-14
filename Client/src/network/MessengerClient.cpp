@@ -37,8 +37,8 @@ void MessengerClient::sendRegisterData(const QString& login, const QString& pass
 
 void MessengerClient::handleConnected() {
     qDebug() << "КЛИЕНТ: Успешно подключено к серверу!";
-    // Для теста сразу после подключения отправляем логин и пароль
-    sendAuthData("admin", "1234");
+    // закомментированно так как данные берутся с окна
+    ///sendAuthData("admin", "1234");
 }
 void MessengerClient::handleReadyRead() {
     QByteArray data = socket->readAll();
