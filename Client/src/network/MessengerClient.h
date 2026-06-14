@@ -19,4 +19,8 @@ private slots:
     void handleConnected();
     void handleReadyRead();
     void handleError(QAbstractSocket::SocketError socketError);
+
+signals: // <-- ДОБАВЛЯЕМ СЕКЦИЮ СИГНАЛОВ
+    void authSuccess();
+    void authError();
 };

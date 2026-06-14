@@ -19,4 +19,6 @@ private:
 
 private slots:
     void onLoginClicked(); // Функция, которая сработает при нажатии кнопки
+    void handleAuthSuccess(); 
+    void handleAuthError();
 };

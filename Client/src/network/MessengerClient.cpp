@@ -49,13 +49,16 @@ void MessengerClient::handleReadyRead() {
 
         if (type == "auth_success") {
             qDebug() << "СЕРВЕР ОТВЕТИЛ: Доступ разрешен! Можно открывать окно чатов.";
-            
+
+            emit authSuccess();
             // Как только админ успешно зашел, он отправляет запрос на регистрацию нового юзера
            // sendRegisterData("user2", "5678"); 
             
             //sendMessage("Всем привет! Я в чате!");
         } else if (type == "auth_error") {
             qDebug() << "СЕРВЕР ОТВЕТИЛ: Неверный логин или пароль!";
+
+            emit authError();
         } 
 
         else if (type == "register_success") {
