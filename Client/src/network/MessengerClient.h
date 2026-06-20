@@ -23,4 +23,5 @@ private slots:
 signals: // <-- ДОБАВЛЯЕМ СЕКЦИЮ СИГНАЛОВ
     void authSuccess();
     void authError();
+    void messageReceived(const QString& sender, const QString& text); 
 };

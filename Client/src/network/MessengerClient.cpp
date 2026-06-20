@@ -71,9 +71,10 @@ void MessengerClient::handleReadyRead() {
             QString sender = doc.object()["sender"].toString(); // Достаем имя
             QString text = doc.object()["text"].toString();
             
-            qDebug() << "-----------------------------";
-            qDebug() << "[" << sender << "]:" << text; // Выводим текст сообщения от 
-            qDebug() << "-----------------------------";
+
+            // Отправляем данные прямиком в интерфейс
+            emit messageReceived(sender, text);
+
         }
     } else {
         qDebug() << "КЛИЕНТ: Получены странные данные (не JSON):" << data;

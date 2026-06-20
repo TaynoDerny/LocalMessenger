@@ -59,6 +59,9 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
 
     // Коннектим кнопку отправки
     connect(sendButton, &QPushButton::clicked, this, &ChatWindow::onSendClicked);
+
+    // Коннектим получение сообщений от сервера к нашему окну
+    connect(client, &MessengerClient::messageReceived, this, &ChatWindow::onMessageReceived);
 }
 
 void ChatWindow::onSendClicked() {
@@ -67,4 +70,12 @@ void ChatWindow::onSendClicked() {
         client->sendMessage(text);
         messageInput->clear(); // Очищаем поле после отправки
     }
+}
+
+void ChatWindow::onMessageReceived(const QString& sender, const QString& text) {
+    // Формируем строку. Тег <b> делает никнейм жирным!
+    QString displayString = QString("<b>[%1]:</b> %2").arg(sender, text);
+    
+    // Добавляем сообщение на экран
+    messagesDisplay->append(displayString);
 }

@@ -29,4 +29,5 @@ private:
 
 private slots:
     void onSendClicked();
+    void onMessageReceived(const QString& sender, const QString& text); 
 };
