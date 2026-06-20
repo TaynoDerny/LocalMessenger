@@ -1,0 +1,29 @@
+/* Делаем темный фон для всего окна */
+QWidget {
+    background-color: #313338; /* Цвет фона Дискорда */
+    color: #DBDEE1; /* Светло-серый цвет текста */
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-size: 14px;
+}
+
+/* Стилизуем нашу кнопку "Отправить" */
+#sendButton {
+    background-color: #5865F2; /* Фирменный синий цвет Дискорда */
+    color: white;
+    border-radius: 4px; /* Скругление углов */
+    padding: 8px 16px;  /* Внутренние отступы */
+    border: none;       /* Убираем стандартную рамку */
+}
+
+/* Делаем так, чтобы кнопка меняла цвет при наведении мышки */
+#sendButton:hover {
+    background-color: #4752C4; 
+}
+
+/* Стилизуем поле ввода */
+#messageInput {
+    background-color: #383A40;
+    border-radius: 8px;
+    padding: 10px;
+    border: none;
+}

@@ -3,6 +3,7 @@ project(Client)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON) # <-- 1. ВКЛЮЧАЕМ ПОДДЕРЖКУ РЕСУРСОВ
 
 find_package(Qt6 COMPONENTS Core Network Widgets REQUIRED)
 
@@ -16,6 +17,7 @@ add_executable(Client
     src/ui/auth/AuthWindow.h
     src/ui/chat/ChatWindow.cpp
     src/ui/chat/ChatWindow.h
+    resources.qrc         # <-- 2. ДОБАВЛЯЕМ ФАЙЛ РЕСУРСОВ В СБОРКУ
 )
 
 target_link_libraries(Client PRIVATE Qt6::Core Qt6::Network Qt6::Widgets)
