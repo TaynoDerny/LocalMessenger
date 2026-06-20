@@ -65,17 +65,20 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
 void ChatWindow::onSendClicked() {
     QString text = messageInput->text();
     
-    // Проверяем, что текст не пустой И что мы выбрали кому писать
     if (!text.isEmpty() && !currentRecipient.isEmpty()) {
         client->sendMessage(text, currentRecipient);
         
-        // Показываем сообщение у себя в окне
-        QString displayString = QString("<b>[Я -> %1]:</b> %2").arg(currentRecipient, text);
+        // Убрали имя получателя из строки, так как мы и так в его чате
+        QString displayString = QString("<b>[Я]:</b> %1").arg(text); 
+        
+        // 1. Сохраняем сообщение в историю конкретного чата
+        chatHistories[currentRecipient].append(displayString);
+        
+        // 2. Сразу выводим его на экран
         messagesDisplay->append(displayString);
         
         messageInput->clear(); 
     } else if (currentRecipient.isEmpty()) {
-        // Если юзер не выбран, подскажем
         messagesDisplay->append("<i>Выберите чат слева, чтобы отправить сообщение!</i>");
     }
 }
@@ -83,7 +86,14 @@ void ChatWindow::onSendClicked() {
 // === ТВОЙ СТАРЫЙ МЕТОД ПОЛУЧЕНИЯ СООБЩЕНИЙ ===
 void ChatWindow::onMessageReceived(const QString& sender, const QString& text) {
     QString displayString = QString("<b>[%1]:</b> %2").arg(sender, text);
-    messagesDisplay->append(displayString);
+    
+    // 1. Всегда сохраняем прилетевшее сообщение в память чата с этим отправителем
+    chatHistories[sender].append(displayString);
+
+    // 2. Если мы ПРЯМО СЕЙЧАС смотрим на чат с этим человеком — обновляем экран
+    if (currentRecipient == sender) {
+        messagesDisplay->append(displayString);
+    }
 }
 
 // === ДВА АБСОЛЮТНО НОВЫХ МЕТОДА ДЛЯ СПИСКА СЛЕВА ===
@@ -95,6 +105,15 @@ void ChatWindow::onUserListReceived(const QStringList& users) {
 }
 
 void ChatWindow::onChatSelected(QListWidgetItem *item) {
-    currentRecipient = item->text(); // Запоминаем, по кому кликнули
-    chatHeader->setText("Чат с: " + currentRecipient); // Меняем текст сверху
+    currentRecipient = item->text(); 
+    chatHeader->setText("Чат с: " + currentRecipient); 
+    
+    // 1. Очищаем экран от старой переписки
+    messagesDisplay->clear();
+    
+    // 2. Загружаем историю выбранного чата из памяти
+    // Если мы кликнули по юзеру впервые, список будет пустым, и экран просто очистится
+    for (const QString& msg : chatHistories[currentRecipient]) {
+        messagesDisplay->append(msg);
+    }
 }

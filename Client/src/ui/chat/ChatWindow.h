@@ -8,6 +8,8 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QListWidgetItem> 
+#include <QHash>
+#include <QStringList>
 #include "../../network/MessengerClient.h"
 
 class ChatWindow : public QWidget {
@@ -30,10 +32,12 @@ private:
 
     QString currentRecipient; // Переменная: кому мы сейчас пишем
 
+    // Ключ - логин собеседника, Значение - список сообщений
+    QHash<QString, QStringList> chatHistories;
 private slots:
     void onSendClicked();
     void onMessageReceived(const QString& sender, const QString& text); 
-    
+
     void onUserListReceived(const QStringList& users); // Обновляет список слева
     void onChatSelected(QListWidgetItem *item);        // Срабатывает при клике на юзера
 
