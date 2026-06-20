@@ -1,6 +1,7 @@
 #pragma once
 #include <QObject>
 #include <QTcpSocket>
+#include <QStringList> // Добавь этот инклуд наверх
 
 class MessengerClient : public QObject {
     Q_OBJECT // Важно для работы сигналов
@@ -9,7 +10,8 @@ public:
     void connectToServer(const QString& ip, quint16 port);
     void sendAuthData(const QString& login, const QString& password);
     void sendRegisterData(const QString& login, const QString& password);
-    void sendMessage(const QString& text);
+    // Обновляем отправку сообщения: теперь нужен текст и получатель
+    void sendMessage(const QString& text, const QString& recipient);
 
 
 private:
@@ -24,4 +26,5 @@ signals: // <-- ДОБАВЛЯЕМ СЕКЦИЮ СИГНАЛОВ
     void authSuccess();
     void authError();
     void messageReceived(const QString& sender, const QString& text); 
+    void userListReceived(const QStringList& users);
 };

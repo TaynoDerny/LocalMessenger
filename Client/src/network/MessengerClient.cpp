@@ -1,6 +1,8 @@
 #include "MessengerClient.h"
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>  
+#include <QJsonValue>
 #include <QDebug>
 
 MessengerClient::MessengerClient(QObject *parent) : QObject(parent) {
@@ -76,6 +78,16 @@ void MessengerClient::handleReadyRead() {
             emit messageReceived(sender, text);
 
         }
+
+        else if (type == "user_list") {
+            QJsonArray usersArray = doc.object()["users"].toArray();
+            QStringList users;
+            for (const QJsonValue &val : usersArray) {
+                users.append(val.toString()); // Достаем никнеймы из JSON
+            }
+            emit userListReceived(users); // Передаем список в интерфейс
+        }
+
     } else {
         qDebug() << "КЛИЕНТ: Получены странные данные (не JSON):" << data;
     }
@@ -85,11 +97,14 @@ void MessengerClient::handleError(QAbstractSocket::SocketError socketError) {
     qDebug() << "КЛИЕНТ ОШИБКА:" << socket->errorString();
 }
 
-void MessengerClient::sendMessage(const QString& text) {
-    QJsonObject json;
-    json["type"] = "message";
-    json["text"] = text;
+void MessengerClient::sendMessage(const QString& text, const QString& recipient) {
+    if (socket->state() == QAbstractSocket::ConnectedState) {
+        QJsonObject json;
+        json["type"] = "message";
+        json["text"] = text;
+        json["recipient"] = recipient; // <-- Добавили кому отправляем
 
-    QJsonDocument doc(json);
-    socket->write(doc.toJson(QJsonDocument::Compact));
+        QJsonDocument doc(json);
+        socket->write(doc.toJson(QJsonDocument::Compact) + "\n");
+    }
 }

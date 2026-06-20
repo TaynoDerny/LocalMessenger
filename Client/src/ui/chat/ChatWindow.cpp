@@ -4,19 +4,17 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     : QWidget(parent), client(client) {
 
     setWindowTitle("Мессенджер");
-    resize(800, 600); // Стартовый размер как у полноценного приложения
+    resize(800, 600); 
 
-    // Главный горизонтальный слой (делит окно на Лево и Право)
     QHBoxLayout *mainLayout = new QHBoxLayout(this);
 
-    // ================= ЛЕВАЯ ПАНЕЛЬ (Список каналов/чатов) =================
+    // ================= ЛЕВАЯ ПАНЕЛЬ =================
     QVBoxLayout *leftLayout = new QVBoxLayout();
     
     QLabel *leftHeader = new QLabel("Чаты и Группы", this);
     chatsList = new QListWidget(this);
     chatsList->setObjectName("chatsList");
 
-    // Кнопка создания групп (пока просто добавляем в каркас)
     createGroupButton = new QPushButton("Создать группу", this);
     createGroupButton->setObjectName("createGroupButton");
 
@@ -24,16 +22,15 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     leftLayout->addWidget(chatsList);
     leftLayout->addWidget(createGroupButton);
 
-    // ================= ПРАВАЯ ПАНЕЛЬ (Окно переписки) =================
+    // ================= ПРАВАЯ ПАНЕЛЬ =================
     QVBoxLayout *rightLayout = new QVBoxLayout();
 
     chatHeader = new QLabel("Выберите чат для начала общения", this);
     
     messagesDisplay = new QTextEdit(this);
-    messagesDisplay->setReadOnly(true); // Запрещаем юзеру редактировать историю чата
+    messagesDisplay->setReadOnly(true); 
     messagesDisplay->setObjectName("messagesDisplay");
 
-    // Нижняя строчка: поле ввода + кнопка отправки
     QHBoxLayout *inputLayout = new QHBoxLayout();
     messageInput = new QLineEdit(this);
     messageInput->setPlaceholderText("Напишите сообщение...");
@@ -45,37 +42,59 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     inputLayout->addWidget(messageInput);
     inputLayout->addWidget(sendButton);
 
-    // Собираем правую панель воедино
     rightLayout->addWidget(chatHeader);
     rightLayout->addWidget(messagesDisplay);
     rightLayout->addLayout(inputLayout); 
 
     // ================= СБОРКА ВСЕГО ОКНА =================
-    // Добавляем слои в главный слой и задаем пропорции (левый займет 1 часть, правый — 3 части)
     mainLayout->addLayout(leftLayout, 1);
     mainLayout->addLayout(rightLayout, 3);
 
     setLayout(mainLayout);
 
-    // Коннектим кнопку отправки
+    // === ТВОИ СТАРЫЕ КОННЕКТЫ ===
     connect(sendButton, &QPushButton::clicked, this, &ChatWindow::onSendClicked);
-
-    // Коннектим получение сообщений от сервера к нашему окну
     connect(client, &MessengerClient::messageReceived, this, &ChatWindow::onMessageReceived);
+
+    // === НОВЫЕ КОННЕКТЫ ДЛЯ ЛЕВОЙ ПАНЕЛИ (ЖДЕМ СПИСОК ОТ СЕРВЕРА И КЛИКАЕМ) ===
+    connect(client, &MessengerClient::userListReceived, this, &ChatWindow::onUserListReceived);
+    connect(chatsList, &QListWidget::itemClicked, this, &ChatWindow::onChatSelected);
 }
 
+// === ИЗМЕНЕННАЯ КНОПКА ОТПРАВКИ (ТЕПЕРЬ ШЛЕМ КОНКРЕТНОМУ ЮЗЕРУ) ===
 void ChatWindow::onSendClicked() {
     QString text = messageInput->text();
-    if (!text.isEmpty()) {
-        client->sendMessage(text);
-        messageInput->clear(); // Очищаем поле после отправки
+    
+    // Проверяем, что текст не пустой И что мы выбрали кому писать
+    if (!text.isEmpty() && !currentRecipient.isEmpty()) {
+        client->sendMessage(text, currentRecipient);
+        
+        // Показываем сообщение у себя в окне
+        QString displayString = QString("<b>[Я -> %1]:</b> %2").arg(currentRecipient, text);
+        messagesDisplay->append(displayString);
+        
+        messageInput->clear(); 
+    } else if (currentRecipient.isEmpty()) {
+        // Если юзер не выбран, подскажем
+        messagesDisplay->append("<i>Выберите чат слева, чтобы отправить сообщение!</i>");
     }
 }
 
+// === ТВОЙ СТАРЫЙ МЕТОД ПОЛУЧЕНИЯ СООБЩЕНИЙ ===
 void ChatWindow::onMessageReceived(const QString& sender, const QString& text) {
-    // Формируем строку. Тег <b> делает никнейм жирным!
     QString displayString = QString("<b>[%1]:</b> %2").arg(sender, text);
-    
-    // Добавляем сообщение на экран
     messagesDisplay->append(displayString);
+}
+
+// === ДВА АБСОЛЮТНО НОВЫХ МЕТОДА ДЛЯ СПИСКА СЛЕВА ===
+void ChatWindow::onUserListReceived(const QStringList& users) {
+    chatsList->clear(); // Очищаем список
+    for (const QString& user : users) {
+        chatsList->addItem(user); // Добавляем юзеров из сети
+    }
+}
+
+void ChatWindow::onChatSelected(QListWidgetItem *item) {
+    currentRecipient = item->text(); // Запоминаем, по кому кликнули
+    chatHeader->setText("Чат с: " + currentRecipient); // Меняем текст сверху
 }

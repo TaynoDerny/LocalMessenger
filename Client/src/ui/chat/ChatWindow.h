@@ -7,6 +7,7 @@
 #include <QLabel>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
+#include <QListWidgetItem> 
 #include "../../network/MessengerClient.h"
 
 class ChatWindow : public QWidget {
@@ -27,7 +28,13 @@ private:
     QLineEdit *messageInput;
     QPushButton *sendButton;
 
+    QString currentRecipient; // Переменная: кому мы сейчас пишем
+
 private slots:
     void onSendClicked();
     void onMessageReceived(const QString& sender, const QString& text); 
+    
+    void onUserListReceived(const QStringList& users); // Обновляет список слева
+    void onChatSelected(QListWidgetItem *item);        // Срабатывает при клике на юзера
+
 };
