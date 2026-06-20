@@ -3,19 +3,22 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QHash>
+#include <QJsonArray> // <-- Добавили для сборки списка пользователей
 #include "DatabaseManager.h"
 
-
 class MessengerServer : public QObject {
-    Q_OBJECT // Макрос, чтобы работали сигналы
+    Q_OBJECT 
 public:
     explicit MessengerServer(QObject *parent = nullptr);
     void start();
 
 private:
     QTcpServer *server;
-    DatabaseManager dbManager; // Наш класс для работы с SQLite
-    QHash<QTcpSocket*, QString> clients; // указатель на сокет -> Имя пользователя (Логин) подключенных клиентов 
+    DatabaseManager dbManager; 
+    QHash<QTcpSocket*, QString> clients; 
+
+    // <-- Новая функция для рассылки списка кто онлайн
+    void broadcastUserList(); 
 
 private slots:
     void handleNewConnection();

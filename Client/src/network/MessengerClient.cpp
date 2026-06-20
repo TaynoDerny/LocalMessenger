@@ -24,8 +24,10 @@ void MessengerClient::sendAuthData(const QString& login, const QString& password
     json["password"] = password;
 
     QJsonDocument doc(json);
-    socket->write(doc.toJson(QJsonDocument::Compact));
+    // ДОБАВИЛИ \n СЮДА
+    socket->write(doc.toJson(QJsonDocument::Compact) + "\n");
 }
+
 // ОТПРАВКА ДАННЫХ РЕГЕСТРАЦИИ 
 void MessengerClient::sendRegisterData(const QString& login, const QString& password) {
     QJsonObject json;
@@ -34,62 +36,56 @@ void MessengerClient::sendRegisterData(const QString& login, const QString& pass
     json["password"] = password;
 
     QJsonDocument doc(json);
-    socket->write(doc.toJson(QJsonDocument::Compact));
+    // ДОБАВИЛИ \n СЮДА
+    socket->write(doc.toJson(QJsonDocument::Compact) + "\n");
 }
 
 void MessengerClient::handleConnected() {
     qDebug() << "КЛИЕНТ: Успешно подключено к серверу!";
-    // закомментированно так как данные берутся с окна
-    ///sendAuthData("admin", "1234");
 }
+
 void MessengerClient::handleReadyRead() {
-    QByteArray data = socket->readAll();
-    QJsonDocument doc = QJsonDocument::fromJson(data);
+    // ЧИТАЕМ СТРОГО ПО ОДНОЙ СТРОКЕ, РАЗДЕЛЕННОЙ \n
+    while (socket->canReadLine()) {
+        QByteArray data = socket->readLine();
+        QJsonDocument doc = QJsonDocument::fromJson(data);
 
-    if (!doc.isNull() && doc.isObject()) {
-        QString type = doc.object()["type"].toString();
+        if (!doc.isNull() && doc.isObject()) {
+            QString type = doc.object()["type"].toString();
 
-        if (type == "auth_success") {
-            qDebug() << "СЕРВЕР ОТВЕТИЛ: Доступ разрешен! Можно открывать окно чатов.";
-
-            emit authSuccess();
-            // Как только админ успешно зашел, он отправляет запрос на регистрацию нового юзера
-           // sendRegisterData("user2", "5678"); 
-            
-            //sendMessage("Всем привет! Я в чате!");
-        } else if (type == "auth_error") {
-            qDebug() << "СЕРВЕР ОТВЕТИЛ: Неверный логин или пароль!";
-
-            emit authError();
-        } 
-
-        else if (type == "register_success") {
-            qDebug() << "КЛИЕНТ: Регистрация прошла успешно! Теперь можно входить.";
-        } 
-        else if (type == "register_error") {
-            qDebug() << "КЛИЕНТ: Ошибка регистрации! Возможно, такое имя уже занято.";
-        }
-        else if (type == "message") {
-            QString sender = doc.object()["sender"].toString(); // Достаем имя
-            QString text = doc.object()["text"].toString();
-            
-
-            // Отправляем данные прямиком в интерфейс
-            emit messageReceived(sender, text);
-
-        }
-
-        else if (type == "user_list") {
-            QJsonArray usersArray = doc.object()["users"].toArray();
-            QStringList users;
-            for (const QJsonValue &val : usersArray) {
-                users.append(val.toString()); // Достаем никнеймы из JSON
+            if (type == "auth_success") {
+                qDebug() << "СЕРВЕР ОТВЕТИЛ: Доступ разрешен! Можно открывать окно чатов.";
+                emit authSuccess();
+            } 
+            else if (type == "auth_error") {
+                qDebug() << "СЕРВЕР ОТВЕТИЛ: Неверный логин или пароль!";
+                emit authError();
+            } 
+            else if (type == "register_success") {
+                qDebug() << "КЛИЕНТ: Регистрация прошла успешно! Теперь можно входить.";
+            } 
+            else if (type == "register_error") {
+                qDebug() << "КЛИЕНТ: Ошибка регистрации! Возможно, такое имя уже занято.";
             }
-            emit userListReceived(users); // Передаем список в интерфейс
-        }
+            else if (type == "message") {
+                QString sender = doc.object()["sender"].toString(); // Достаем имя
+                QString text = doc.object()["text"].toString();
+                
+                // Отправляем данные прямиком в интерфейс
+                emit messageReceived(sender, text);
+            }
+            else if (type == "user_list") {
+                QJsonArray usersArray = doc.object()["users"].toArray();
+                QStringList users;
+                for (const QJsonValue &val : usersArray) {
+                    users.append(val.toString()); // Достаем никнеймы из JSON
+                }
+                emit userListReceived(users); // Передаем список в интерфейс
+            }
 
-    } else {
-        qDebug() << "КЛИЕНТ: Получены странные данные (не JSON):" << data;
+        } else {
+            qDebug() << "КЛИЕНТ: Получены странные данные (не JSON):" << data;
+        }
     }
 }
 
@@ -102,9 +98,10 @@ void MessengerClient::sendMessage(const QString& text, const QString& recipient)
         QJsonObject json;
         json["type"] = "message";
         json["text"] = text;
-        json["recipient"] = recipient; // <-- Добавили кому отправляем
+        json["recipient"] = recipient; // <-- Кому отправляем
 
         QJsonDocument doc(json);
+        // ЗДЕСЬ \n УЖЕ БЫЛ, ОСТАВЛЯЕМ КАК ЕСТЬ
         socket->write(doc.toJson(QJsonDocument::Compact) + "\n");
     }
 }
