@@ -104,6 +104,9 @@ void MessengerServer::handleReadyRead() {
 
                 qDebug() << "СЕРВЕР: Сообщение от" << senderName << "для" << recipient;
 
+                // <-- ДОБАВЛЕНО: Сохраняем в базу!
+                dbManager.saveMessage(senderName, recipient, text); 
+
                 QJsonObject response;
                 response["type"] = "message";
                 response["sender"] = senderName; 
@@ -117,6 +120,19 @@ void MessengerServer::handleReadyRead() {
                         break;
                     }
                 }
+            }
+            else if (json["type"].toString() == "get_history") {
+                QString withUser = json["with"].toString();
+                QString currentUser = clients.value(clientSocket);
+                
+                QJsonArray history = dbManager.getChatHistory(currentUser, withUser);
+                
+                QJsonObject response;
+                response["type"] = "history";
+                response["with"] = withUser;
+                response["messages"] = history;
+                
+                clientSocket->write(QJsonDocument(response).toJson(QJsonDocument::Compact) + "\n");
             }
         }
     }
