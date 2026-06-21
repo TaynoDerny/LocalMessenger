@@ -14,8 +14,13 @@ public:
     void sendMessage(const QString& text, const QString& recipient);
 
 
+    void requestHistory(const QString& chatWith); // Запросить историю
+    QString getMyLogin() const { return myLogin; } // Узнать свой логин
+
+
 private:
     QTcpSocket *socket;
+    QString myLogin; 
 
 private slots:
     void handleConnected();
@@ -27,4 +32,5 @@ signals: // <-- ДОБАВЛЯЕМ СЕКЦИЮ СИГНАЛОВ
     void authError();
     void messageReceived(const QString& sender, const QString& text); 
     void userListReceived(const QStringList& users);
+    void historyReceived(const QString& chatWith, const QJsonArray& messages); // Сигнал для интерфейса
 };

@@ -5,12 +5,18 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QLabel>
+
 #include <QHBoxLayout>
 #include <QVBoxLayout>
+
 #include <QListWidgetItem> 
 #include <QHash>
 #include <QStringList>
 #include <QStackedWidget>
+
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QJsonValue>
 
 #include "../../network/MessengerClient.h"
 
@@ -50,6 +56,8 @@ private slots:
     void onMessageReceived(const QString& sender, const QString& text); 
     void onUserListReceived(const QStringList& users); 
     void onChatSelected(QListWidgetItem *item);  
+
+    void onHistoryReceived(const QString& chatWith, const QJsonArray& messages);
 
 
 };

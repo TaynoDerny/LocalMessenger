@@ -19,6 +19,8 @@ void MessengerClient::connectToServer(const QString& ip, quint16 port) {
 }
 
 void MessengerClient::sendAuthData(const QString& login, const QString& password) {
+
+    this->myLogin = login; // <-- ЗАПОМИНАЕМ, КТО МЫ
     // Надежное хеширование
     QByteArray hashBytes = QCryptographicHash::hash(password.toUtf8(), QCryptographicHash::Sha256);
     QString hash = QString(hashBytes.toHex());
@@ -90,6 +92,11 @@ void MessengerClient::handleReadyRead() {
                 }
                 emit userListReceived(users); // Передаем список в интерфейс
             }
+            else if (type == "history") {
+                QString withUser = doc.object()["with"].toString();
+                QJsonArray messages = doc.object()["messages"].toArray();
+                emit historyReceived(withUser, messages); // Передаем в окно чата
+            }
 
         } else {
             qDebug() << "КЛИЕНТ: Получены странные данные (не JSON):" << data;
@@ -112,4 +119,12 @@ void MessengerClient::sendMessage(const QString& text, const QString& recipient)
         // ЗДЕСЬ \n УЖЕ БЫЛ, ОСТАВЛЯЕМ КАК ЕСТЬ
         socket->write(doc.toJson(QJsonDocument::Compact) + "\n");
     }
+}
+
+void MessengerClient::requestHistory(const QString& chatWith) {
+    QJsonObject json;
+    json["type"] = "get_history";
+    json["with"] = chatWith;
+    QJsonDocument doc(json);
+    socket->write(doc.toJson(QJsonDocument::Compact) + "\n");
 }

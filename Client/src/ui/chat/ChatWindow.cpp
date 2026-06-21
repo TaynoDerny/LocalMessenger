@@ -112,6 +112,7 @@ QWidget *serversContainer = new QWidget(this);
     connect(client, &MessengerClient::messageReceived, this, &ChatWindow::onMessageReceived);
     connect(client, &MessengerClient::userListReceived, this, &ChatWindow::onUserListReceived);
     connect(chatsList, &QListWidget::itemClicked, this, &ChatWindow::onChatSelected);
+    connect(client, &MessengerClient::historyReceived, this, &ChatWindow::onHistoryReceived);
 
 }
 
@@ -153,13 +154,30 @@ void ChatWindow::onChatSelected(QListWidgetItem *item) {
     currentRecipient = item->text(); 
     chatHeader->setText("<b>Чат с:</b> " + currentRecipient); 
     
-    // ПРЯЧЕМ ЗАГЛУШКУ, ПОКАЗЫВАЕМ ЧАТ!
     mainArea->setCurrentIndex(1);
+    messagesDisplay->clear(); // Очищаем экран
     
-    messagesDisplay->clear();
-    
-    for (const QString& msg : chatHistories[currentRecipient]) {
-        messagesDisplay->append(msg);
-    }
+    // Запрашиваем историю у сервера
+    client->requestHistory(currentRecipient);
 }
 
+void ChatWindow::onHistoryReceived(const QString& chatWith, const QJsonArray& messages) {
+    // Если история пришла именно для того чата, который сейчас открыт
+    if (chatWith == currentRecipient) {
+        messagesDisplay->clear(); // На всякий случай чистим еще раз
+        
+        for (const QJsonValue& val : messages) {
+            QJsonObject msgObj = val.toObject();
+            QString sender = msgObj["sender"].toString();
+            QString text = msgObj["text"].toString();
+            
+            QString displayString;
+            if (sender == client->getMyLogin()) {
+                displayString = QString("<b>[Я]:</b> %1").arg(text);
+            } else {
+                displayString = QString("<b>[%1]:</b> %2").arg(sender, text);
+            }
+            messagesDisplay->append(displayString);
+        }
+    }
+}
