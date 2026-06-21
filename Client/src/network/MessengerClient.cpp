@@ -4,6 +4,7 @@
 #include <QJsonArray>  
 #include <QJsonValue>
 #include <QDebug>
+#include <QCryptographicHash>
 
 MessengerClient::MessengerClient(QObject *parent) : QObject(parent) {
     socket = new QTcpSocket(this);
@@ -18,25 +19,32 @@ void MessengerClient::connectToServer(const QString& ip, quint16 port) {
 }
 
 void MessengerClient::sendAuthData(const QString& login, const QString& password) {
+    // Надежное хеширование
+    QByteArray hashBytes = QCryptographicHash::hash(password.toUtf8(), QCryptographicHash::Sha256);
+    QString hash = QString(hashBytes.toHex());
+
+    qDebug() << "КЛИЕНТ: Отправляем логин:" << login << "и хеш:" << hash;
+
     QJsonObject json;
     json["type"] = "auth";
     json["login"] = login;
-    json["password"] = password;
+    json["password"] = hash; 
 
     QJsonDocument doc(json);
-    // ДОБАВИЛИ \n СЮДА
     socket->write(doc.toJson(QJsonDocument::Compact) + "\n");
 }
 
 // ОТПРАВКА ДАННЫХ РЕГЕСТРАЦИИ 
 void MessengerClient::sendRegisterData(const QString& login, const QString& password) {
+    // Здесь делаем то же самое
+    QString hash = QString(QCryptographicHash::hash(password.toUtf8(), QCryptographicHash::Sha256).toHex());
+
     QJsonObject json;
     json["type"] = "register";
     json["login"] = login;
-    json["password"] = password;
+    json["password"] = hash; 
 
     QJsonDocument doc(json);
-    // ДОБАВИЛИ \n СЮДА
     socket->write(doc.toJson(QJsonDocument::Compact) + "\n");
 }
 
