@@ -1,4 +1,4 @@
-/* Делаем темный фон для всего окна */
+/* ================= ОБЩИЕ СТИЛИ ================= */
 QWidget {
     background-color: #313338; /* Цвет фона Дискорда */
     color: #DBDEE1; /* Светло-серый цвет текста */
@@ -6,24 +6,73 @@ QWidget {
     font-size: 14px;
 }
 
+/* ================= ЛЕВАЯ ПАНЕЛЬ (СЕРВЕРЫ) ================= */
+QListWidget#serversList {
+    background-color: #1E1F22; /* Самый темный фон слева */
+    border: none;
+}
+
+/* Кнопка создания группы (+) */
+QPushButton#createGroupButton {
+    border-radius: 20px; /* Круглая кнопка */
+    background-color: #313338; 
+    color: #23A559; /* Зеленый цвет Дискорда */
+    font-size: 24px; 
+    font-weight: bold;
+    border: none;
+}
+QPushButton#createGroupButton:hover {
+    background-color: #23A559; 
+    color: white;
+}
+
+/* ================= СРЕДНЯЯ ПАНЕЛЬ (ЛИЧНЫЕ ЧАТЫ) ================= */
+QListWidget#chatsList {
+    background-color: #2B2D31; /* Цвет чуть темнее основного */
+    border: none;
+    font-size: 14px;
+}
+
+/* Элементы списков (Никнеймы) */
+QListWidget::item {
+    padding: 8px;
+    border-radius: 4px; /* Легкое скругление при выделении */
+}
+QListWidget::item:hover {
+    background-color: #3F4147; /* Подсветка при наведении */
+}
+QListWidget::item:selected {
+    background-color: #404249; /* Цвет выбранного чата */
+    color: white;
+}
+
+/* ================= ПРАВАЯ ПАНЕЛЬ (ОКНО ЧАТА) ================= */
+/* Текстовое поле для истории сообщений */
+QTextEdit#messagesDisplay {
+    background-color: #313338;
+    border: none;
+    padding: 10px;
+}
+
+/* Стилизуем поле ввода */
+QLineEdit#messageInput {
+    background-color: #383A40;
+    border-radius: 8px;
+    padding: 10px;
+    border: none;
+}
+
 /* Стилизуем нашу кнопку "Отправить" */
-#sendButton {
+QPushButton#sendButton {
     background-color: #5865F2; /* Фирменный синий цвет Дискорда */
     color: white;
     border-radius: 4px; /* Скругление углов */
     padding: 8px 16px;  /* Внутренние отступы */
     border: none;       /* Убираем стандартную рамку */
+    font-weight: bold;
 }
 
 /* Делаем так, чтобы кнопка меняла цвет при наведении мышки */
-#sendButton:hover {
+QPushButton#sendButton:hover {
     background-color: #4752C4; 
-}
-
-/* Стилизуем поле ввода */
-#messageInput {
-    background-color: #383A40;
-    border-radius: 8px;
-    padding: 10px;
-    border: none;
 }

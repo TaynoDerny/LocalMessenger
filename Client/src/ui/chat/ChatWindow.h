@@ -10,6 +10,8 @@
 #include <QListWidgetItem> 
 #include <QHash>
 #include <QStringList>
+#include <QStackedWidget>
+
 #include "../../network/MessengerClient.h"
 
 class ChatWindow : public QWidget {
@@ -20,25 +22,34 @@ public:
 private:
     MessengerClient *client;
 
-    // Левая панель (в стиле боковой панели Дискорда)
-    QListWidget *chatsList;
-    QPushButton *createGroupButton; // Кнопка, которую мы потом спрячем от не-админов
+    // --- 1 колонка (в стиле боковой панели Дискорда для серверов/групп)
+    QListWidget *serversList;
+    QPushButton *createGroupButton; 
 
-    // Правая панель (зона самого чата)
+    // --- 2 колонка (Личные чаты)
+    QListWidget *chatsList;
+
+    // --- 3 колонка (Рабочая зона с переключением экранов)
+    QStackedWidget *mainArea; 
+    QWidget *homeWidget; // Экран-заглушка (когда никто не выбран)
+    QWidget *chatWidget; // Экран самого чата
+
+    // Элементы внутри экрана чата
     QLabel *chatHeader;
     QTextEdit *messagesDisplay;
     QLineEdit *messageInput;
     QPushButton *sendButton;
 
-    QString currentRecipient; // Переменная: кому мы сейчас пишем
+    QString currentRecipient; 
 
     // Ключ - логин собеседника, Значение - список сообщений
     QHash<QString, QStringList> chatHistories;
+
 private slots:
     void onSendClicked();
     void onMessageReceived(const QString& sender, const QString& text); 
+    void onUserListReceived(const QStringList& users); 
+    void onChatSelected(QListWidgetItem *item);  
 
-    void onUserListReceived(const QStringList& users); // Обновляет список слева
-    void onChatSelected(QListWidgetItem *item);        // Срабатывает при клике на юзера
 
 };

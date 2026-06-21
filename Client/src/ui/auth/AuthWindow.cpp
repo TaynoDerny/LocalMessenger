@@ -4,6 +4,8 @@
 AuthWindow::AuthWindow(MessengerClient *client, QWidget *parent) 
     : QWidget(parent), client(client) {
     
+    setAttribute(Qt::WA_DeleteOnClose);
+
     // Настройки самого окна
     setWindowTitle("Вход в Мессенджер");
     resize(300, 200);
