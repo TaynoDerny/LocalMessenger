@@ -1,4 +1,5 @@
 #include "ChatWindow.h"
+#include "../admin/CreateUserDialog.h"
 
 ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     : QWidget(parent), client(client) {
@@ -13,7 +14,7 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     mainLayout->setSpacing(0);
 
     // ================= 1. ЛЕВАЯ ПАНЕЛЬ (Группы / Серверы) =================
-QWidget *serversContainer = new QWidget(this);
+    QWidget *serversContainer = new QWidget(this);
     serversContainer->setFixedWidth(70); // Жестко фиксируем всю колонку!
 
     QVBoxLayout *serversLayout = new QVBoxLayout(serversContainer);
@@ -40,21 +41,43 @@ QWidget *serversContainer = new QWidget(this);
 
     mainLayout->addWidget(serversContainer);
 
-    // ================= 2. СРЕДНЯЯ ПАНЕЛЬ (Личные сообщения) =================
-   QWidget *friendsContainer = new QWidget(this);
-    friendsContainer->setFixedWidth(240); // Ширина списка друзей
+
+
+    
+
+// ================= 2. СРЕДНЯЯ ПАНЕЛЬ (Личные сообщения) =================
+    QWidget *friendsContainer = new QWidget(this);
+    friendsContainer->setFixedWidth(200); // Примерная ширина
 
     QVBoxLayout *friendsLayout = new QVBoxLayout(friendsContainer);
-    friendsLayout->setContentsMargins(10, 10, 10, 10);
+    friendsLayout->setContentsMargins(0, 0, 0, 0);
 
-    QLabel *leftHeader = new QLabel("Личные сообщения", this);
+    // 1. ОБЯЗАТЕЛЬНО СОЗДАЕМ СПИСОК (Используем правильное имя - chatsList)
     chatsList = new QListWidget(this);
-    chatsList->setFrameShape(QFrame::NoFrame); // Убираем рамку
     chatsList->setObjectName("chatsList");
 
-    friendsLayout->addWidget(leftHeader);
+    // 2. Добавляем список в layout
     friendsLayout->addWidget(chatsList);
 
+    // 3. Создаем нашу новую кнопку и добавляем ее ПОД списком
+    createUserBtn = new QPushButton("Создать пользователя", this);
+    friendsLayout->addWidget(createUserBtn);
+
+    // 4. Логика кнопки
+    connect(createUserBtn, &QPushButton::clicked, this, [this]() {
+        CreateUserDialog dialog(this);
+        
+        if (dialog.exec() == QDialog::Accepted) {
+            QString login = dialog.getLogin();
+            QString password = dialog.getPassword();
+            bool isAdmin = dialog.isAdmin();
+            
+            qDebug() << "Пытаемся создать:" << login << isAdmin;
+            // TODO: отправка на сервер
+        }
+    });
+    
+    // Добавляем всю панель в главное окно
     mainLayout->addWidget(friendsContainer);
 
     // ================= 3. ПРАВАЯ ПАНЕЛЬ (Переключение экранов) =================

@@ -17,6 +17,8 @@ add_executable(Client
     src/ui/auth/AuthWindow.h
     src/ui/chat/ChatWindow.cpp
     src/ui/chat/ChatWindow.h
+    src/ui/admin/CreateUserDialog.cpp
+    src/ui/admin/CreateUserDialog.h
     resources.qrc         # <-- 2. ДОБАВЛЯЕМ ФАЙЛ РЕСУРСОВ В СБОРКУ
 )
 

@@ -46,6 +46,8 @@ private:
     QLineEdit *messageInput;
     QPushButton *sendButton;
 
+    QPushButton *createUserBtn; // <-- Новая кнопка создание пользователя
+
     QString currentRecipient; 
 
     // Ключ - логин собеседника, Значение - список сообщений
@@ -58,6 +60,7 @@ private slots:
     void onChatSelected(QListWidgetItem *item);  
 
     void onHistoryReceived(const QString& chatWith, const QJsonArray& messages);
+    
 
 
 };
