@@ -1,6 +1,6 @@
 #include "ChatWindow.h"
 #include "../admin/CreateUserDialog.h"
-
+#include "../settings/SettingsDialog.h"
 ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     : QWidget(parent), client(client) {
 
@@ -98,7 +98,47 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     // Добавляем всю панель в главное окно
     mainLayout->addWidget(friendsContainer);
 
-    // ================= 3. ПРАВАЯ ПАНЕЛЬ (Переключение экранов) =================
+// ================= 3. ПРАВАЯ ПАНЕЛЬ (Верхний бар + Экраны) =================
+    QWidget *rightContainer = new QWidget(this);
+    QVBoxLayout *rightLayout = new QVBoxLayout(rightContainer);
+    rightLayout->setContentsMargins(0, 0, 0, 0);
+    rightLayout->setSpacing(0);
+
+    // --- ВЕРХНЯЯ ПАНЕЛЬ (Top Bar) ---
+    QWidget *topBar = new QWidget(this);
+    topBar->setFixedHeight(48); // Высота как в дискорде
+    topBar->setStyleSheet("background-color: #36393f; border-bottom: 1px solid #202225;");
+    
+    QHBoxLayout *topBarLayout = new QHBoxLayout(topBar);
+    topBarLayout->setContentsMargins(15, 0, 15, 0);
+    
+    topBarLayout->addStretch(); // Сдвигаем кнопку вправо
+
+    QPushButton *settingsBtn = new QPushButton("⚙️", this); // Можно потом заменить на иконку
+    settingsBtn->setFixedSize(30, 30);
+    settingsBtn->setStyleSheet(
+        "QPushButton { background: transparent; color: #b9bbbe; font-size: 20px; border: none; }"
+        "QPushButton:hover { color: white; }"
+    );
+    topBarLayout->addWidget(settingsBtn);
+
+    // --- ЛОГИКА ОТКРЫТИЯ НАСТРОЕК С ЗАТЕМНЕНИЕМ ---
+    connect(settingsBtn, &QPushButton::clicked, this, [this]() {
+        // Создаем виджет-затемнение на всё окно
+        QWidget *overlay = new QWidget(this);
+        overlay->setStyleSheet("background-color: rgba(0, 0, 0, 170);"); // Полупрозрачный черный
+        overlay->resize(this->size());
+        overlay->show();
+
+        // Открываем диалог (он блокирует окно, пока не закроется)
+        SettingsDialog dialog(this);
+        dialog.exec();
+
+        // Когда диалог закрыли, удаляем затемнение
+        delete overlay;
+    });
+
+    // --- РАБОЧАЯ ЗОНА (mainArea) ---
     mainArea = new QStackedWidget(this);
 
     // --- Экран 0: Заглушка (Главное меню) ---
@@ -106,11 +146,9 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     QVBoxLayout *homeLayout = new QVBoxLayout(homeWidget);
     QLabel *welcomeLabel = new QLabel("Выберите чат или группу слева", this);
     welcomeLabel->setAlignment(Qt::AlignCenter);
-    
     QFont font = welcomeLabel->font();
     font.setPointSize(14);
     welcomeLabel->setFont(font);
-    
     homeLayout->addWidget(welcomeLabel);
     mainArea->addWidget(homeWidget); // Индекс 0
 
@@ -119,7 +157,6 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     QVBoxLayout *chatLayout = new QVBoxLayout(chatWidget);
 
     chatHeader = new QLabel("Выберите чат для начала общения", this);
-    
     messagesDisplay = new QTextEdit(this);
     messagesDisplay->setReadOnly(true); 
     messagesDisplay->setObjectName("messagesDisplay");
@@ -145,11 +182,14 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     adminWidget = new AdminPanelWidget(client, this);
     mainArea->addWidget(adminWidget); // Индекс 2
 
-    mainLayout->addWidget(mainArea);
-    setLayout(mainLayout);
+    // Сборка правой панели
+    rightLayout->addWidget(topBar);
+    rightLayout->addWidget(mainArea);
 
-    // По умолчанию прячем чат и показываем заглушку
-    mainArea->setCurrentIndex(0);
+    mainLayout->addWidget(rightContainer); // Добавляем всё это в главное окно
+    setLayout(mainLayout);
+    
+    mainArea->setCurrentIndex(0); // По умолчанию прячем чат
 
     // ================= КОННЕКТЫ =================
     connect(sendButton, &QPushButton::clicked, this, &ChatWindow::onSendClicked);

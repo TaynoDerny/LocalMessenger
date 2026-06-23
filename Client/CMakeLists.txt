@@ -21,6 +21,8 @@ add_executable(Client
     src/ui/admin/CreateUserDialog.h
     src/ui/admin/AdminPanelWidget.cpp
     src/ui/admin/AdminPanelWidget.h
+    src/ui/settings/SettingsDialog.cpp
+    src/ui/settings/SettingsDialog.h
     resources.qrc         # <-- 2. ДОБАВЛЯЕМ ФАЙЛ РЕСУРСОВ В СБОРКУ
 )
 
