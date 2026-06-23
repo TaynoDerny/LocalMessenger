@@ -17,6 +17,10 @@ public:
     bool saveMessage(const QString& sender, const QString& recipient, const QString& text);
     QJsonArray getChatHistory(const QString& user1, const QString& user2);
 
+    QJsonArray getAllUsersInfo(); // Вытащить всех юзеров
+    bool resetUserPassword(const QString& targetLogin, const QString& newPasswordHash); // Сброс пароля
+    bool wipeUserData(const QString& targetLogin); // Удаление истории (обнуление)
+
 private:
     QSqlDatabase db;
 };

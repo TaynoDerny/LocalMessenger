@@ -110,3 +110,44 @@ QJsonArray DatabaseManager::getChatHistory(const QString& user1, const QString& 
     }
     return history;
 }
+
+QJsonArray DatabaseManager::getAllUsersInfo() {
+    QJsonArray usersArray;
+    QSqlQuery query("SELECT login, is_admin FROM Users");
+    
+    while (query.next()) {
+        QJsonObject userObj;
+        userObj["login"] = query.value(0).toString();
+        userObj["is_admin"] = query.value(1).toInt() == 1;
+        usersArray.append(userObj);
+    }
+    return usersArray;
+}
+
+bool DatabaseManager::resetUserPassword(const QString& targetLogin, const QString& newPasswordHash) {
+    QSqlQuery query;
+    query.prepare("UPDATE Users SET password_hash = :hash WHERE login = :login");
+    query.bindValue(":hash", newPasswordHash);
+    query.bindValue(":login", targetLogin);
+    
+    if (!query.exec()) {
+        qDebug() << "БАЗА: Ошибка сброса пароля:" << query.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+bool DatabaseManager::wipeUserData(const QString& targetLogin) {
+    QSqlQuery query;
+    // Удаляем все сообщения, где юзер был либо отправителем, либо получателем
+    query.prepare("DELETE FROM Messages WHERE sender = :login OR recipient = :login");
+    query.bindValue(":login", targetLogin);
+    
+    if (!query.exec()) {
+        qDebug() << "БАЗА: Ошибка обнуления данных юзера:" << query.lastError().text();
+        return false;
+    }
+    
+    // ПРИМЕЧАНИЕ: Когда добавим группы, сюда же допишем удаление из таблицы групп
+    return true;
+}

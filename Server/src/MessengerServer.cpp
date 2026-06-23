@@ -3,6 +3,8 @@
 #include <QJsonObject>
 #include <QJsonArray>
 #include <QDebug>
+#include <QHostAddress>
+
 
 MessengerServer::MessengerServer(QObject *parent) : QObject(parent) {
     server = new QTcpServer(this);
@@ -155,6 +157,73 @@ void MessengerServer::handleReadyRead() {
                     broadcastUserList();
                 } else {
                     qDebug() << "СЕРВЕР: Не удалось создать пользователя:" << newLogin;
+                }
+            }
+            else if (json["type"].toString() == "get_admin_data") {
+                QString senderName = clients.value(clientSocket);
+                
+                // ЗАЩИТА: Только админ может запрашивать эти данные!
+                if (!dbManager.isAdmin(senderName)) return;
+
+                QJsonArray dbUsers = dbManager.getAllUsersInfo();
+                QJsonArray finalUsers;
+
+                // Пробегаемся по всем юзерам из базы и выясняем, кто в сети
+                for (const QJsonValue& val : dbUsers) {
+                    QJsonObject u = val.toObject();
+                    u["online"] = false;
+                    u["ip"] = "Не в сети";
+
+                    // Ищем юзера среди подключенных клиентов
+                    for (auto it = clients.begin(); it != clients.end(); ++it) {
+                        if (it.value() == u["login"].toString()) {
+                            u["online"] = true;
+                            
+                            // Вытаскиваем IP и очищаем от префикса IPv6 (если он есть)
+                            QString ip = it.key()->peerAddress().toString();
+                            if (ip.startsWith("::ffff:")) {
+                                ip = ip.mid(7);
+                            }
+                            u["ip"] = ip;
+                            break;
+                        }
+                    }
+                    finalUsers.append(u);
+                }
+
+                QJsonObject response;
+                response["type"] = "admin_data_result";
+                response["users"] = finalUsers;
+                clientSocket->write(QJsonDocument(response).toJson(QJsonDocument::Compact) + "\n");
+            }
+            else if (json["type"].toString() == "reset_password") {
+                QString senderName = clients.value(clientSocket);
+                if (!dbManager.isAdmin(senderName)) return; // ЗАЩИТА
+
+                QString targetUser = json["target_user"].toString();
+                QString newHash = json["new_password_hash"].toString();
+
+                if (dbManager.resetUserPassword(targetUser, newHash)) {
+                    qDebug() << "СЕРВЕР: Админ" << senderName << "сбросил пароль для" << targetUser;
+                }
+            }
+            else if (json["type"].toString() == "wipe_user") {
+                QString senderName = clients.value(clientSocket);
+                if (!dbManager.isAdmin(senderName)) return; // ЗАЩИТА
+
+                QString targetUser = json["target_user"].toString();
+                
+                if (dbManager.wipeUserData(targetUser)) {
+                    qDebug() << "СЕРВЕР: Админ" << senderName << "обнулил пользователя" << targetUser;
+                    
+                    // КИКАЕМ ЮЗЕРА, ЕСЛИ ОН СЕЙЧАС ОНЛАЙН!
+                    for (auto it = clients.begin(); it != clients.end(); ++it) {
+                        if (it.value() == targetUser) {
+                            qDebug() << "СЕРВЕР: Принудительно отключаем" << targetUser;
+                            it.key()->disconnectFromHost(); 
+                            break;
+                        }
+                    }
                 }
             }
         }
