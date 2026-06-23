@@ -19,6 +19,7 @@
 #include <QJsonValue>
 
 #include "../../network/MessengerClient.h"
+#include "../admin/AdminPanelWidget.h"
 
 class ChatWindow : public QWidget {
     Q_OBJECT
@@ -31,6 +32,11 @@ private:
     // --- 1 колонка (в стиле боковой панели Дискорда для серверов/групп)
     QListWidget *serversList;
     QPushButton *createGroupButton; 
+
+
+    QPushButton *adminPanelBtn; // Кнопка перехода в панель
+    AdminPanelWidget *adminWidget; // Сам экран админки
+    
 
     // --- 2 колонка (Личные чаты)
     QListWidget *chatsList;
@@ -52,6 +58,8 @@ private:
 
     // Ключ - логин собеседника, Значение - список сообщений
     QHash<QString, QStringList> chatHistories;
+
+    
 
 private slots:
     void onSendClicked();

@@ -39,6 +39,20 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     // Добавляем кнопку и центрируем ее по горизонтали
     serversLayout->addWidget(createGroupButton, 0, Qt::AlignHCenter); 
 
+    // --- ДОБАВЛЯЕМ КНОПКУ АДМИНКИ ---
+    adminPanelBtn = new QPushButton("⚙️", this); 
+    adminPanelBtn->setFixedSize(50, 50);
+    adminPanelBtn->setStyleSheet(
+        "QPushButton { border-radius: 25px; background-color: #36393f; color: white; font-size: 24px; }"
+        "QPushButton:hover { background-color: #7289da; }"
+    );
+    serversLayout->addWidget(adminPanelBtn, 0, Qt::AlignHCenter); 
+
+    // Скрываем кнопку, если мы не админ
+    if (!client->isAdmin()) {
+        adminPanelBtn->hide(); 
+    }
+
     mainLayout->addWidget(serversContainer);
 
 
@@ -127,6 +141,10 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     
     mainArea->addWidget(chatWidget); // Индекс 1
 
+    // --- Экран 2: Админ панель ---
+    adminWidget = new AdminPanelWidget(client, this);
+    mainArea->addWidget(adminWidget); // Индекс 2
+
     mainLayout->addWidget(mainArea);
     setLayout(mainLayout);
 
@@ -140,6 +158,13 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     connect(client, &MessengerClient::userListReceived, this, &ChatWindow::onUserListReceived);
     connect(chatsList, &QListWidget::itemClicked, this, &ChatWindow::onChatSelected);
     connect(client, &MessengerClient::historyReceived, this, &ChatWindow::onHistoryReceived);
+    // --- КОННЕКТЫ ДЛЯ АДМИНКИ ---
+    connect(adminPanelBtn, &QPushButton::clicked, this, [this, client]() {
+        mainArea->setCurrentIndex(2);
+        client->requestAdminData();
+    });
+
+    connect(client, &MessengerClient::adminDataReceived, adminWidget, &AdminPanelWidget::updateTable);
 
 }
 

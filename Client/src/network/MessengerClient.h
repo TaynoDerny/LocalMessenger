@@ -2,6 +2,7 @@
 #include <QObject>
 #include <QTcpSocket>
 #include <QStringList> // Добавь этот инклуд наверх
+#include <QJsonArray>
 
 class MessengerClient : public QObject {
     Q_OBJECT // Важно для работы сигналов
@@ -20,6 +21,9 @@ public:
 
     void createAccount(const QString& login, const QString& password, bool isAdmin);
 
+    void requestAdminData();
+    void sendResetPassword(const QString& targetLogin, const QString& newPassword);
+    void sendWipeUser(const QString& targetLogin);
 
 private:
     QTcpSocket *socket;
@@ -37,4 +41,6 @@ signals: // <-- ДОБАВЛЯЕМ СЕКЦИЮ СИГНАЛОВ
     void messageReceived(const QString& sender, const QString& text); 
     void userListReceived(const QStringList& users);
     void historyReceived(const QString& chatWith, const QJsonArray& messages); // Сигнал для интерфейса
+
+    void adminDataReceived(const QJsonArray& users);
 };

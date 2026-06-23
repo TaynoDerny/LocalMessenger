@@ -99,6 +99,11 @@ void MessengerClient::handleReadyRead() {
                 QJsonArray messages = doc.object()["messages"].toArray();
                 emit historyReceived(withUser, messages); // Передаем в окно чата
             }
+            // ... твои предыдущие else if ...
+            else if (type == "admin_data_result") {
+                QJsonArray users = doc.object()["users"].toArray();
+                emit adminDataReceived(users);
+            }
 
         } else {
             qDebug() << "КЛИЕНТ: Получены странные данные (не JSON):" << data;
@@ -145,4 +150,26 @@ void MessengerClient::createAccount(const QString& login, const QString& passwor
     QJsonDocument doc(json);
     socket->write(doc.toJson(QJsonDocument::Compact) + "\n");
     qDebug() << "КЛИЕНТ: Отправлен запрос на создание пользователя:" << login;
+}
+
+void MessengerClient::requestAdminData() {
+    QJsonObject json;
+    json["type"] = "get_admin_data";
+    socket->write(QJsonDocument(json).toJson(QJsonDocument::Compact) + "\n");
+}
+
+void MessengerClient::sendResetPassword(const QString& targetLogin, const QString& newPassword) {
+    QString hash = QString(QCryptographicHash::hash(newPassword.toUtf8(), QCryptographicHash::Sha256).toHex());
+    QJsonObject json;
+    json["type"] = "reset_password";
+    json["target_user"] = targetLogin;
+    json["new_password_hash"] = hash;
+    socket->write(QJsonDocument(json).toJson(QJsonDocument::Compact) + "\n");
+}
+
+void MessengerClient::sendWipeUser(const QString& targetLogin) {
+    QJsonObject json;
+    json["type"] = "wipe_user";
+    json["target_user"] = targetLogin;
+    socket->write(QJsonDocument(json).toJson(QJsonDocument::Compact) + "\n");
 }
