@@ -64,9 +64,11 @@ void MessengerClient::handleReadyRead() {
             QString type = doc.object()["type"].toString();
 
             if (type == "auth_success") {
-                qDebug() << "СЕРВЕР ОТВЕТИЛ: Доступ разрешен! Можно открывать окно чатов.";
+                adminStatus = doc.object()["is_admin"].toBool(); 
+                
+                qDebug() << "СЕРВЕР ОТВЕТИЛ: Доступ разрешен! Админ ли мы:" << adminStatus;
                 emit authSuccess();
-            } 
+            }
             else if (type == "auth_error") {
                 qDebug() << "СЕРВЕР ОТВЕТИЛ: Неверный логин или пароль!";
                 emit authError();
@@ -127,4 +129,20 @@ void MessengerClient::requestHistory(const QString& chatWith) {
     json["with"] = chatWith;
     QJsonDocument doc(json);
     socket->write(doc.toJson(QJsonDocument::Compact) + "\n");
+}
+
+void MessengerClient::createAccount(const QString& login, const QString& password, bool isAdmin) {
+    // Хешируем пароль перед отправкой
+    QByteArray hashBytes = QCryptographicHash::hash(password.toUtf8(), QCryptographicHash::Sha256);
+    QString hash = QString(hashBytes.toHex());
+
+    QJsonObject json;
+    json["type"] = "create_user";
+    json["login"] = login;
+    json["password"] = hash;
+    json["is_admin"] = isAdmin;
+
+    QJsonDocument doc(json);
+    socket->write(doc.toJson(QJsonDocument::Compact) + "\n");
+    qDebug() << "КЛИЕНТ: Отправлен запрос на создание пользователя:" << login;
 }

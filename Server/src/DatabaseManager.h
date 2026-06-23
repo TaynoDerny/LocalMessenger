@@ -2,15 +2,18 @@
 #include <QSqlDatabase>
 #include <QSqlQuery>
 #include <QDebug>
-#include <QJsonArray> // <-- Добавили
+#include <QJsonArray> 
 
 class DatabaseManager {
 public:
     DatabaseManager();
     bool checkUser(const QString& login, const QString& password);
-    bool registerUser(const QString& login, const QString& password);
+
+    // НОВЫЙ МЕТОД: проверка на админа
+    bool isAdmin(const QString& login);
+
+    bool registerUser(const QString& login, const QString& password, bool isAdmin);
     
-    // Новые методы для истории
     bool saveMessage(const QString& sender, const QString& recipient, const QString& text);
     QJsonArray getChatHistory(const QString& user1, const QString& user2);
 

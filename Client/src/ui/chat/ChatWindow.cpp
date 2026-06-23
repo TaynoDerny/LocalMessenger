@@ -63,8 +63,13 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     createUserBtn = new QPushButton("Создать пользователя", this);
     friendsLayout->addWidget(createUserBtn);
 
+    // <-- ДОБАВИТЬ: ПРОВЕРКА НА АДМИНА
+    if (!client->isAdmin()) {
+        createUserBtn->hide(); // Если не админ, кнопка просто исчезает из интерфейса
+    }
+
     // 4. Логика кнопки
-    connect(createUserBtn, &QPushButton::clicked, this, [this]() {
+    connect(createUserBtn, &QPushButton::clicked, this, [this, client]() {
         CreateUserDialog dialog(this);
         
         if (dialog.exec() == QDialog::Accepted) {
@@ -72,8 +77,7 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
             QString password = dialog.getPassword();
             bool isAdmin = dialog.isAdmin();
             
-            qDebug() << "Пытаемся создать:" << login << isAdmin;
-            // TODO: отправка на сервер
+            client->createAccount(login, password, isAdmin);
         }
     });
     

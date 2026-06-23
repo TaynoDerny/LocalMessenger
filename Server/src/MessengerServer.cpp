@@ -40,7 +40,6 @@ void MessengerServer::broadcastUserList() {
     response["type"] = "user_list";
     response["users"] = usersArray;
 
-    // ДОБАВИЛИ \n ДЛЯ РАЗДЕЛЕНИЯ ПАКЕТОВ
     QByteArray responseData = QJsonDocument(response).toJson(QJsonDocument::Compact) + "\n";
 
     for (QTcpSocket *client : clients.keys()) {
@@ -54,7 +53,6 @@ void MessengerServer::handleReadyRead() {
     QTcpSocket *clientSocket = qobject_cast<QTcpSocket*>(sender());
     if (!clientSocket) return;
 
-    // ЧИТАЕМ СТРОГО ПО ОДНОЙ СТРОКЕ
     while (clientSocket->canReadLine()) {
         QByteArray data = clientSocket->readLine();
         QJsonDocument doc = QJsonDocument::fromJson(data);
@@ -70,9 +68,13 @@ void MessengerServer::handleReadyRead() {
                     qDebug() << "СЕРВЕР: Пользователь" << login << "авторизован.";
                     clients[clientSocket] = login; 
 
+                    // --- ИЗМЕНЕНИЕ: Узнаем, админ ли это, и отправляем клиенту ---
+                    bool isUserAdmin = dbManager.isAdmin(login);
+
                     QJsonObject response;
                     response["type"] = "auth_success";
-                    // ДОБАВИЛИ \n
+                    response["is_admin"] = isUserAdmin; // <-- КЛИЕНТ УЗНАЕТ СВОЙ СТАТУС
+                    
                     clientSocket->write(QJsonDocument(response).toJson(QJsonDocument::Compact) + "\n");
 
                     broadcastUserList(); 
@@ -88,7 +90,7 @@ void MessengerServer::handleReadyRead() {
                 QString password = json["password"].toString();
 
                 QJsonObject response;
-                if (dbManager.registerUser(login, password)) {
+                if (dbManager.registerUser(login, password, false)) {
                     qDebug() << "СЕРВЕР: Зарегистрирован:" << login;
                     response["type"] = "register_success";
                 } else {
@@ -104,14 +106,13 @@ void MessengerServer::handleReadyRead() {
 
                 qDebug() << "СЕРВЕР: Сообщение от" << senderName << "для" << recipient;
 
-                // <-- ДОБАВЛЕНО: Сохраняем в базу!
                 dbManager.saveMessage(senderName, recipient, text); 
 
                 QJsonObject response;
                 response["type"] = "message";
                 response["sender"] = senderName; 
                 response["text"] = text;
-                // ДОБАВИЛИ \n
+                
                 QByteArray responseData = QJsonDocument(response).toJson(QJsonDocument::Compact) + "\n";
 
                 for (auto it = clients.begin(); it != clients.end(); ++it) {
@@ -133,6 +134,28 @@ void MessengerServer::handleReadyRead() {
                 response["messages"] = history;
                 
                 clientSocket->write(QJsonDocument(response).toJson(QJsonDocument::Compact) + "\n");
+            }
+            else if (json["type"].toString() == "create_user") {
+                // --- ИЗМЕНЕНИЕ: Проверяем, кто отправляет запрос! ---
+                QString senderName = clients.value(clientSocket);
+                
+                if (!dbManager.isAdmin(senderName)) {
+                    qDebug() << "СЕРВЕР: ОТКАЗ! Юзер" << senderName << "пытается создать аккаунт, не будучи админом!🖕";
+                    return; // Игнорируем запрос хакера :)
+                }
+
+                QString newLogin = json["login"].toString();
+                QString newPassword = json["password"].toString();
+                bool isAdmin = json["is_admin"].toBool();
+
+                qDebug() << "СЕРВЕР: Админ" << senderName << "создает пользователя:" << newLogin;
+
+                if (dbManager.registerUser(newLogin, newPassword, isAdmin)) {
+                    qDebug() << "СЕРВЕР: Пользователь успешно создан и добавлен в БД:" << newLogin;
+                    broadcastUserList();
+                } else {
+                    qDebug() << "СЕРВЕР: Не удалось создать пользователя:" << newLogin;
+                }
             }
         }
     }

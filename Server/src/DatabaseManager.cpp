@@ -47,13 +47,24 @@ bool DatabaseManager::checkUser(const QString& login, const QString& password) {
     }
     return found;
 }
-
-bool DatabaseManager::registerUser(const QString& login, const QString& password) {
+bool DatabaseManager::isAdmin(const QString& login) {
     QSqlQuery query;
-    // Используем правильные названия колонок
-    query.prepare("INSERT INTO Users (login, password_hash, is_admin) VALUES (:login, :password, 0)");
+    query.prepare("SELECT is_admin FROM Users WHERE login = :login");
+    query.bindValue(":login", login);
+    
+    if (query.exec() && query.next()) {
+        return query.value(0).toInt() == 1; // 1 - значит админ, 0 - обычный
+    }
+    return false;
+}
+bool DatabaseManager::registerUser(const QString& login, const QString& password, bool isAdmin) {
+    QSqlQuery query;
+    // Обновляем запрос: теперь подставляем :is_admin
+    query.prepare("INSERT INTO Users (login, password_hash, is_admin) VALUES (:login, :password, :is_admin)");
     query.bindValue(":login", login);
     query.bindValue(":password", password);
+    // Тернарный оператор: если isAdmin == true, пишем 1, иначе 0
+    query.bindValue(":is_admin", isAdmin ? 1 : 0);
 
     if (!query.exec()) {
         qDebug() << "БАЗА ДАННЫХ: Ошибка регистрации пользователя:" << query.lastError().text();

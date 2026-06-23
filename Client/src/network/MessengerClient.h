@@ -16,11 +16,15 @@ public:
 
     void requestHistory(const QString& chatWith); // Запросить историю
     QString getMyLogin() const { return myLogin; } // Узнать свой логин
+    bool isAdmin() const { return adminStatus; } //  Узнать свой статус админа
+
+    void createAccount(const QString& login, const QString& password, bool isAdmin);
 
 
 private:
     QTcpSocket *socket;
     QString myLogin; 
+    bool adminStatus = false; //  Переменная для хранения статуса
 
 private slots:
     void handleConnected();
