@@ -248,7 +248,7 @@ QPixmap ChatWindow::createCircularAvatarFromBase64(const QString& base64, int si
         int offset = size / 12;
         
         painter.setPen(QPen(QColor("#202225"), 2.5)); 
-        painter.setBrush(QColor("#43b581")); 
+        painter.setBrush(QColor("#45A366")); 
         painter.drawEllipse(size - statusSize - offset, size - statusSize - offset, statusSize, statusSize);
     }
 
