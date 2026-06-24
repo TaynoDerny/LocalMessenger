@@ -1,94 +1,137 @@
 /* ================= ОБЩИЕ СТИЛИ ================= */
 QWidget {
-    background-color: #313338; /* Цвет фона Дискорда */
-    color: #DBDEE1; /* Светло-серый цвет текста */
+    background-color: #1A1A1E;
+    color: #DBDEE1;
     font-family: "Segoe UI", Arial, sans-serif;
     font-size: 14px;
 }
 
-/* ================= ЛЕВАЯ ПАНЕЛЬ (СЕРВЕРЫ) ================= */
+/* ================= ЛЕВАЯ ПАНЕЛЬ ================= */
 QListWidget#serversList {
-    background-color: #1E1F22; /* Самый темный фон слева */
+    background-color: #1E1F22;
     border: none;
 }
 
-/* Кнопка создания группы (+) */
-QPushButton#createGroupButton {
-    border-radius: 20px; /* Круглая кнопка */
-    background-color: #313338; 
-    color: #23A559; /* Зеленый цвет Дискорда */
-    font-size: 24px; 
+/* Кнопка создания группы (+) - вынесли из C++ */
+QPushButton#btnCreateGroup {
+    border-radius: 25px; 
+    background-color: #36393f; 
+    color: #43b581; 
+    font-size: 28px; 
     font-weight: bold;
     border: none;
 }
-QPushButton#createGroupButton:hover {
-    background-color: #23A559; 
+QPushButton#btnCreateGroup:hover {
+    background-color: #43b581; 
     color: white;
 }
 
-/* ================= СРЕДНЯЯ ПАНЕЛЬ (ЛИЧНЫЕ ЧАТЫ) ================= */
+/* Кнопка админ-панели (⚙️) - вынесли из C++ */
+QPushButton#btnAdminPanel {
+    border-radius: 25px; 
+    background-color: #36393f; 
+    color: white; 
+    font-size: 24px; 
+    border: none;
+}
+QPushButton#btnAdminPanel:hover {
+    background-color: #7289da;
+}
+
+/* ================= СРЕДНЯЯ ПАНЕЛЬ ================= */
+QWidget#friendsContainer {
+    /* Если нужен особый фон, поменяйте тут, иначе наследует от QWidget */
+    background-color: #2B2D31; 
+}
+
 QListWidget#chatsList {
-    background-color: #2B2D31; /* Цвет чуть темнее основного */
+    background-color: #121214;
     border: none;
     font-size: 14px;
 }
 
-/* Элементы списков (Никнеймы) */
-QListWidget::item {
-    padding: 8px;
-    border-radius: 4px; /* Легкое скругление при выделении */
+/* Иконки и строки списка чатов - перенесли сюда */
+QListWidget#chatsList::item {
+    padding: 2px 10px;
+    min-height: 40px;
+    font-size: 14px;
+    border-radius: 4px;
 }
-QListWidget::item:hover {
-    background-color: #3F4147; /* Подсветка при наведении */
+QListWidget#chatsList::item:hover {
+    background-color: #1D1D1E;
 }
-QListWidget::item:selected {
-    background-color: #404249; /* Цвет выбранного чата */
+QListWidget#chatsList::item:selected {
+    background-color: #2C2C30;
+    color: white;
+}
+/* 3. Выбран И наведение мыши (ваше 4-е состояние) */
+QListWidget#chatsList::item:selected:hover {
+    background-color: #1D1D1E; /* Замените на ваш цвет */
     color: white;
 }
 
 /* ================= ПРАВАЯ ПАНЕЛЬ (ОКНО ЧАТА) ================= */
-/* Текстовое поле для истории сообщений */
+/* Верхняя шапка и кнопка настроек - перенесли сюда */
+QWidget#topBar {
+    background-color: #1A1A1E; 
+    border-bottom: 1px solid #3D3D3D;
+}
+
+QPushButton#btnSettings {
+    background: transparent; 
+    color: #b9bbbe; 
+    font-size: 20px; 
+    border: none;
+}
+QPushButton#btnSettings:hover {
+    color: white;
+}
+
+/* Текстовое поле истории */
 QTextEdit#messagesDisplay {
-    background-color: #313338;
+    background-color: #1A1A1E;
     border: none;
     padding: 10px;
 }
 
-/* Стилизуем поле ввода */
+/* Поле ввода сообщения */
 QLineEdit#messageInput {
-    background-color: #383A40;
+    background-color: #222327;
     border-radius: 8px;
     padding: 10px;
     border: none;
 }
 
-/* Стилизуем нашу кнопку "Отправить" */
+/* Кнопка "Отправить" */
 QPushButton#sendButton {
-    background-color: #5865F2; /* Фирменный синий цвет Дискорда */
+    background-color: #5865F2;
     color: white;
-    border-radius: 4px; /* Скругление углов */
-    padding: 8px 16px;  /* Внутренние отступы */
-    border: none;       /* Убираем стандартную рамку */
+    border-radius: 4px;
+    padding: 8px 16px;
+    border: none;
     font-weight: bold;
 }
-
-/* Делаем так, чтобы кнопка меняла цвет при наведении мышки */
 QPushButton#sendButton:hover {
     background-color: #4752C4; 
 }
 
-/* Стили для круглой аватарки в настройках (всё рисуется через код C++) */
+/* Оверлей настроек */
+QWidget#overlayWidget {
+    background-color: rgba(0, 0, 0, 170);
+}
+
+/* ================= СТИЛИ ДЛЯ НАСТРОЕК (SettingsDialog) ================= */
 QLabel#avatarLabel {
     background-color: transparent;
     border: none;
 }
-/* Стили для кнопки сохранения (синяя, как в Дискорде) */
 QPushButton#saveProfileBtn {
     background-color: #5865F2;
     color: white;
     border-radius: 4px;
     padding: 8px 16px;
     font-weight: bold;
+    border: none;
 }
 QPushButton#saveProfileBtn:hover {
     background-color: #4752C4;

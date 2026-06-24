@@ -26,64 +26,59 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
 
     createGroupButton = new QPushButton("+", this);
     createGroupButton->setFixedSize(50, 50);
-    createGroupButton->setStyleSheet(
-        "QPushButton { border-radius: 25px; background-color: #36393f; color: #43b581; font-size: 28px; font-weight: bold; }"
-        "QPushButton:hover { background-color: #43b581; color: white; }"
-    );
-    createGroupButton->setObjectName("createGroupButton");
+    createGroupButton->setObjectName("btnCreateGroup"); // <--- Убрали setStyleSheet, дали имя
 
     serversLayout->addWidget(serversList);
     serversLayout->addWidget(createGroupButton, 0, Qt::AlignHCenter); 
 
     adminPanelBtn = new QPushButton("⚙️", this); 
     adminPanelBtn->setFixedSize(50, 50);
-    adminPanelBtn->setStyleSheet(
-        "QPushButton { border-radius: 25px; background-color: #36393f; color: white; font-size: 24px; }"
-        "QPushButton:hover { background-color: #7289da; }"
-    );
-    serversLayout->addWidget(adminPanelBtn, 0, Qt::AlignHCenter); 
+    adminPanelBtn->setObjectName("btnAdminPanel"); // <--- Убрали setStyleSheet, дали имя
     if (!client->isAdmin()) adminPanelBtn->hide(); 
 
+    serversLayout->addWidget(adminPanelBtn, 0, Qt::AlignHCenter); 
     mainLayout->addWidget(serversContainer);
 
-    // ================= 2. СРЕДНЯЯ ПАНЕЛЬ (СДЕЛАЛИ КОМПАКТНЕЕ) =================
+    // ================= 2. СРЕДНЯЯ ПАНЕЛЬ =================
     QWidget *friendsContainer = new QWidget(this);
     friendsContainer->setFixedWidth(250);
+    friendsContainer->setObjectName("friendsContainer"); // <--- Дали имя
 
     QVBoxLayout *friendsLayout = new QVBoxLayout(friendsContainer);
     friendsLayout->setContentsMargins(0, 0, 0, 0);
 
     chatsList = new QListWidget(this);
-    
-    // УМЕНЬШИЛИ ИКОНКИ ДО 36px и ВЫСОТУ СТРОК ДО 40px (было 48px и 50px)
     chatsList->setIconSize(QSize(36, 36)); 
-    chatsList->setStyleSheet("QListWidget::item { padding: 2px 10px; min-height: 40px; font-size: 14px; }");
-    
+    // Убрали chatsList->setStyleSheet(...), стили теперь в style.qss через #chatsList
     chatsList->setObjectName("chatsList");
+
     friendsLayout->addWidget(chatsList);
     mainLayout->addWidget(friendsContainer);
 
     // ================= 3. ПРАВАЯ ПАНЕЛЬ =================
     QWidget *rightContainer = new QWidget(this);
+    rightContainer->setObjectName("rightContainer"); // <--- Дали имя
+
     QVBoxLayout *rightLayout = new QVBoxLayout(rightContainer);
     rightLayout->setContentsMargins(0, 0, 0, 0);
     rightLayout->setSpacing(0);
 
     QWidget *topBar = new QWidget(this);
     topBar->setFixedHeight(48);
-    topBar->setStyleSheet("background-color: #36393f; border-bottom: 1px solid #202225;");
+    topBar->setObjectName("topBar"); // <--- Убрали setStyleSheet, дали имя
+
     QHBoxLayout *topBarLayout = new QHBoxLayout(topBar);
     topBarLayout->setContentsMargins(15, 0, 15, 0);
     topBarLayout->addStretch();
 
     QPushButton *settingsBtn = new QPushButton("⚙️", this);
     settingsBtn->setFixedSize(30, 30);
-    settingsBtn->setStyleSheet("QPushButton { background: transparent; color: #b9bbbe; font-size: 20px; border: none; } QPushButton:hover { color: white; }");
+    settingsBtn->setObjectName("btnSettings"); // <--- Убрали setStyleSheet, дали имя
     topBarLayout->addWidget(settingsBtn);
 
     connect(settingsBtn, &QPushButton::clicked, this, [this]() {
         QWidget *overlay = new QWidget(this);
-        overlay->setStyleSheet("background-color: rgba(0, 0, 0, 170);");
+        overlay->setObjectName("overlayWidget"); // <--- Убрали setStyleSheet, дали имя
         overlay->resize(this->size());
         overlay->show();
         SettingsDialog dialog(this);
@@ -94,6 +89,7 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     mainArea = new QStackedWidget(this);
 
     homeWidget = new QWidget(this);
+    homeWidget->setObjectName("homeWidget"); // <--- Дали имя
     QVBoxLayout *homeLayout = new QVBoxLayout(homeWidget);
     QLabel *welcomeLabel = new QLabel("Выберите чат или группу слева", this);
     welcomeLabel->setAlignment(Qt::AlignCenter);
@@ -104,19 +100,24 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     mainArea->addWidget(homeWidget);
 
     chatWidget = new QWidget(this);
+    chatWidget->setObjectName("chatWidget"); // <--- Дали имя
     QVBoxLayout *chatLayout = new QVBoxLayout(chatWidget);
+    
     chatHeader = new QLabel("Выберите чат для начала общения", this);
+    chatHeader->setObjectName("chatHeader"); // <--- Дали имя
+    
     messagesDisplay = new QTextEdit(this);
     messagesDisplay->setReadOnly(true); 
     messagesDisplay->setObjectName("messagesDisplay");
-
 
     QHBoxLayout *inputLayout = new QHBoxLayout();
     messageInput = new QLineEdit(this);
     messageInput->setPlaceholderText("Напишите сообщение...");
     messageInput->setObjectName("messageInput");
+    
     sendButton = new QPushButton("Отправить", this);
     sendButton->setObjectName("sendButton");
+    
     inputLayout->addWidget(messageInput);
     inputLayout->addWidget(sendButton);
 
