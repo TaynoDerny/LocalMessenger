@@ -173,3 +173,16 @@ void MessengerClient::sendWipeUser(const QString& targetLogin) {
     json["target_user"] = targetLogin;
     socket->write(QJsonDocument(json).toJson(QJsonDocument::Compact) + "\n");
 }
+
+void MessengerClient::updateProfile(const QString& newName, const QString& avatarBase64) {
+    if (socket->state() == QAbstractSocket::ConnectedState) {
+        QJsonObject json;
+        json["type"] = "update_profile";
+        json["new_name"] = newName;
+        json["avatar_base64"] = avatarBase64; // Передаём строку картинки
+
+        QJsonDocument doc(json);
+        socket->write(doc.toJson(QJsonDocument::Compact) + "\n");
+        qDebug() << "КЛИЕНТ: Отправляем обновление профиля на сервер";
+    }
+}

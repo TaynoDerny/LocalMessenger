@@ -25,6 +25,9 @@ public:
     void sendResetPassword(const QString& targetLogin, const QString& newPassword);
     void sendWipeUser(const QString& targetLogin);
 
+        // Добавить в публичные методы:
+    void updateProfile(const QString& newName, const QString& avatarBase64);
+
 private:
     QTcpSocket *socket;
     QString myLogin; 
