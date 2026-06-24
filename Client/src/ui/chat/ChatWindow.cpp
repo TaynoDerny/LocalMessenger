@@ -1,34 +1,33 @@
 #include "ChatWindow.h"
-#include "../admin/CreateUserDialog.h"
 #include "../settings/SettingsDialog.h"
+
 ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     : QWidget(parent), client(client) {
 
     setAttribute(Qt::WA_DeleteOnClose);
 
     setWindowTitle("Мессенджер");
-    resize(1000, 600); // Сделали чуть шире под три колонки
+    resize(1000, 600);
 
     QHBoxLayout *mainLayout = new QHBoxLayout(this);
-    mainLayout->setContentsMargins(0, 0, 0, 0); // Убираем отступы окна для красоты
+    mainLayout->setContentsMargins(0, 0, 0, 0); 
     mainLayout->setSpacing(0);
 
-    // ================= 1. ЛЕВАЯ ПАНЕЛЬ (Группы / Серверы) =================
+    // ================= 1. ЛЕВАЯ ПАНЕЛЬ =================
     QWidget *serversContainer = new QWidget(this);
-    serversContainer->setFixedWidth(70); // Жестко фиксируем всю колонку!
+    serversContainer->setFixedWidth(70);
 
     QVBoxLayout *serversLayout = new QVBoxLayout(serversContainer);
-    serversLayout->setContentsMargins(5, 10, 5, 10); // Отступы от краев
-    serversLayout->setSpacing(10); // Расстояние между элементами
+    serversLayout->setContentsMargins(5, 10, 5, 10);
+    serversLayout->setSpacing(10);
 
     serversList = new QListWidget(this);
-    serversList->setFrameShape(QFrame::NoFrame); // Убираем уродливую рамку
-    serversList->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff); // Убираем нижний ползунок
+    serversList->setFrameShape(QFrame::NoFrame);
+    serversList->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     serversList->setObjectName("serversList");
 
     createGroupButton = new QPushButton("+", this);
-    createGroupButton->setFixedSize(50, 50); // Делаем кнопку ровным квадратом
-    // Сразу накинем стиль, чтобы она стала круглой и зеленой при наведении, как в Discord
+    createGroupButton->setFixedSize(50, 50);
     createGroupButton->setStyleSheet(
         "QPushButton { border-radius: 25px; background-color: #36393f; color: #43b581; font-size: 28px; font-weight: bold; }"
         "QPushButton:hover { background-color: #43b581; color: white; }"
@@ -36,10 +35,8 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     createGroupButton->setObjectName("createGroupButton");
 
     serversLayout->addWidget(serversList);
-    // Добавляем кнопку и центрируем ее по горизонтали
     serversLayout->addWidget(createGroupButton, 0, Qt::AlignHCenter); 
 
-    // --- ДОБАВЛЯЕМ КНОПКУ АДМИНКИ ---
     adminPanelBtn = new QPushButton("⚙️", this); 
     adminPanelBtn->setFixedSize(50, 50);
     adminPanelBtn->setStyleSheet(
@@ -48,73 +45,41 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     );
     serversLayout->addWidget(adminPanelBtn, 0, Qt::AlignHCenter); 
 
-    // Скрываем кнопку, если мы не админ
     if (!client->isAdmin()) {
         adminPanelBtn->hide(); 
     }
 
     mainLayout->addWidget(serversContainer);
 
-
-
-    
-
-// ================= 2. СРЕДНЯЯ ПАНЕЛЬ (Личные сообщения) =================
+    // ================= 2. СРЕДНЯЯ ПАНЕЛЬ =================
     QWidget *friendsContainer = new QWidget(this);
-    friendsContainer->setFixedWidth(200); // Примерная ширина
+    friendsContainer->setFixedWidth(200);
 
     QVBoxLayout *friendsLayout = new QVBoxLayout(friendsContainer);
     friendsLayout->setContentsMargins(0, 0, 0, 0);
 
-    // 1. ОБЯЗАТЕЛЬНО СОЗДАЕМ СПИСОК (Используем правильное имя - chatsList)
     chatsList = new QListWidget(this);
     chatsList->setObjectName("chatsList");
+    friendsLayout->addWidget(chatsList); // Кнопка "Создать пользователя" убрана!
 
-    // 2. Добавляем список в layout
-    friendsLayout->addWidget(chatsList);
-
-    // 3. Создаем нашу новую кнопку и добавляем ее ПОД списком
-    createUserBtn = new QPushButton("Создать пользователя", this);
-    friendsLayout->addWidget(createUserBtn);
-
-    // <-- ДОБАВИТЬ: ПРОВЕРКА НА АДМИНА
-    if (!client->isAdmin()) {
-        createUserBtn->hide(); // Если не админ, кнопка просто исчезает из интерфейса
-    }
-
-    // 4. Логика кнопки
-    connect(createUserBtn, &QPushButton::clicked, this, [this, client]() {
-        CreateUserDialog dialog(this);
-        
-        if (dialog.exec() == QDialog::Accepted) {
-            QString login = dialog.getLogin();
-            QString password = dialog.getPassword();
-            bool isAdmin = dialog.isAdmin();
-            
-            client->createAccount(login, password, isAdmin);
-        }
-    });
-    
-    // Добавляем всю панель в главное окно
     mainLayout->addWidget(friendsContainer);
 
-// ================= 3. ПРАВАЯ ПАНЕЛЬ (Верхний бар + Экраны) =================
+    // ================= 3. ПРАВАЯ ПАНЕЛЬ =================
     QWidget *rightContainer = new QWidget(this);
     QVBoxLayout *rightLayout = new QVBoxLayout(rightContainer);
     rightLayout->setContentsMargins(0, 0, 0, 0);
     rightLayout->setSpacing(0);
 
-    // --- ВЕРХНЯЯ ПАНЕЛЬ (Top Bar) ---
+    // --- ВЕРХНЯЯ ПАНЕЛЬ ---
     QWidget *topBar = new QWidget(this);
-    topBar->setFixedHeight(48); // Высота как в дискорде
+    topBar->setFixedHeight(48);
     topBar->setStyleSheet("background-color: #36393f; border-bottom: 1px solid #202225;");
     
     QHBoxLayout *topBarLayout = new QHBoxLayout(topBar);
     topBarLayout->setContentsMargins(15, 0, 15, 0);
-    
-    topBarLayout->addStretch(); // Сдвигаем кнопку вправо
+    topBarLayout->addStretch();
 
-    QPushButton *settingsBtn = new QPushButton("⚙️", this); // Можно потом заменить на иконку
+    QPushButton *settingsBtn = new QPushButton("⚙️", this);
     settingsBtn->setFixedSize(30, 30);
     settingsBtn->setStyleSheet(
         "QPushButton { background: transparent; color: #b9bbbe; font-size: 20px; border: none; }"
@@ -122,26 +87,21 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     );
     topBarLayout->addWidget(settingsBtn);
 
-    // --- ЛОГИКА ОТКРЫТИЯ НАСТРОЕК С ЗАТЕМНЕНИЕМ ---
     connect(settingsBtn, &QPushButton::clicked, this, [this]() {
-        // Создаем виджет-затемнение на всё окно
         QWidget *overlay = new QWidget(this);
-        overlay->setStyleSheet("background-color: rgba(0, 0, 0, 170);"); // Полупрозрачный черный
+        overlay->setStyleSheet("background-color: rgba(0, 0, 0, 170);");
         overlay->resize(this->size());
         overlay->show();
 
-        // Открываем диалог (он блокирует окно, пока не закроется)
         SettingsDialog dialog(this);
         dialog.exec();
 
-        // Когда диалог закрыли, удаляем затемнение
         delete overlay;
     });
 
-    // --- РАБОЧАЯ ЗОНА (mainArea) ---
+    // --- РАБОЧАЯ ЗОНА ---
     mainArea = new QStackedWidget(this);
 
-    // --- Экран 0: Заглушка (Главное меню) ---
     homeWidget = new QWidget(this);
     QVBoxLayout *homeLayout = new QVBoxLayout(homeWidget);
     QLabel *welcomeLabel = new QLabel("Выберите чат или группу слева", this);
@@ -150,9 +110,8 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     font.setPointSize(14);
     welcomeLabel->setFont(font);
     homeLayout->addWidget(welcomeLabel);
-    mainArea->addWidget(homeWidget); // Индекс 0
+    mainArea->addWidget(homeWidget);
 
-    // --- Экран 1: Сам чат ---
     chatWidget = new QWidget(this);
     QVBoxLayout *chatLayout = new QVBoxLayout(chatWidget);
 
@@ -176,40 +135,37 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     chatLayout->addWidget(messagesDisplay);
     chatLayout->addLayout(inputLayout); 
     
-    mainArea->addWidget(chatWidget); // Индекс 1
+    mainArea->addWidget(chatWidget);
 
-    // --- Экран 2: Админ панель ---
     adminWidget = new AdminPanelWidget(client, this);
-    mainArea->addWidget(adminWidget); // Индекс 2
+    mainArea->addWidget(adminWidget);
 
-    // Сборка правой панели
     rightLayout->addWidget(topBar);
     rightLayout->addWidget(mainArea);
 
-    mainLayout->addWidget(rightContainer); // Добавляем всё это в главное окно
+    mainLayout->addWidget(rightContainer);
     setLayout(mainLayout);
     
-    mainArea->setCurrentIndex(0); // По умолчанию прячем чат
+    mainArea->setCurrentIndex(0);
 
     // ================= КОННЕКТЫ =================
     connect(sendButton, &QPushButton::clicked, this, &ChatWindow::onSendClicked);
-    connect(messageInput, &QLineEdit::returnPressed, this, &ChatWindow::onSendClicked); // Отправка по Enter
+    connect(messageInput, &QLineEdit::returnPressed, this, &ChatWindow::onSendClicked);
     connect(client, &MessengerClient::messageReceived, this, &ChatWindow::onMessageReceived);
     connect(client, &MessengerClient::userListReceived, this, &ChatWindow::onUserListReceived);
     connect(chatsList, &QListWidget::itemClicked, this, &ChatWindow::onChatSelected);
     connect(client, &MessengerClient::historyReceived, this, &ChatWindow::onHistoryReceived);
-    // --- КОННЕКТЫ ДЛЯ АДМИНКИ ---
+    
     connect(adminPanelBtn, &QPushButton::clicked, this, [this, client]() {
         mainArea->setCurrentIndex(2);
         client->requestAdminData();
     });
 
     connect(client, &MessengerClient::adminDataReceived, adminWidget, &AdminPanelWidget::updateTable);
-
 }
 
-// ================= МЕТОДЫ =================
-
+// ... Остальные методы (onSendClicked, onMessageReceived...) остаются без изменений. 
+// Вставляйте их сюда как были из оригинального файла.
 void ChatWindow::onSendClicked() {
     QString text = messageInput->text();
     
@@ -247,16 +203,14 @@ void ChatWindow::onChatSelected(QListWidgetItem *item) {
     chatHeader->setText("<b>Чат с:</b> " + currentRecipient); 
     
     mainArea->setCurrentIndex(1);
-    messagesDisplay->clear(); // Очищаем экран
+    messagesDisplay->clear(); 
     
-    // Запрашиваем историю у сервера
     client->requestHistory(currentRecipient);
 }
 
 void ChatWindow::onHistoryReceived(const QString& chatWith, const QJsonArray& messages) {
-    // Если история пришла именно для того чата, который сейчас открыт
     if (chatWith == currentRecipient) {
-        messagesDisplay->clear(); // На всякий случай чистим еще раз
+        messagesDisplay->clear(); 
         
         for (const QJsonValue& val : messages) {
             QJsonObject msgObj = val.toObject();

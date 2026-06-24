@@ -1,6 +1,6 @@
 #include "AdminPanelWidget.h"
-// Укажи правильный путь до твоего MessengerClient.h !
 #include "../../network/MessengerClient.h" 
+#include "CreateUserDialog.h" // <-- Добавили диалог создания
 
 AdminPanelWidget::AdminPanelWidget(MessengerClient* client, QWidget *parent)
     : QWidget(parent), client(client) {
@@ -10,7 +10,7 @@ AdminPanelWidget::AdminPanelWidget(MessengerClient* client, QWidget *parent)
 void AdminPanelWidget::setupUI() {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
-    // ВЕРХНЯЯ ПАНЕЛЬ: Поиск и фильтры
+    // ВЕРХНЯЯ ПАНЕЛЬ: Поиск, фильтры, и кнопки
     QHBoxLayout* topLayout = new QHBoxLayout();
     
     searchEdit = new QLineEdit(this);
@@ -26,9 +26,22 @@ void AdminPanelWidget::setupUI() {
     refreshBtn = new QPushButton("Обновить", this);
     connect(refreshBtn, &QPushButton::clicked, client, &MessengerClient::requestAdminData);
 
+    // ==== НОВАЯ КНОПКА ЗДЕСЬ ====
+    createUserBtn = new QPushButton("Создать пользователя", this);
+    connect(createUserBtn, &QPushButton::clicked, this, [this]() {
+        CreateUserDialog dialog(this);
+        if (dialog.exec() == QDialog::Accepted) {
+            QString login = dialog.getLogin();
+            QString password = dialog.getPassword();
+            bool isAdmin = dialog.isAdmin();
+            client->createAccount(login, password, isAdmin);
+        }
+    });
+
     topLayout->addWidget(searchEdit);
     topLayout->addWidget(filterCombo);
     topLayout->addWidget(refreshBtn);
+    topLayout->addWidget(createUserBtn); // Добавляем в раскладку
 
     // ТАБЛИЦА ПОЛЬЗОВАТЕЛЕЙ
     usersTable = new QTableWidget(0, 4, this);
@@ -36,32 +49,25 @@ void AdminPanelWidget::setupUI() {
     usersTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     usersTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     usersTable->setSelectionMode(QAbstractItemView::SingleSelection);
-    usersTable->setEditTriggers(QAbstractItemView::NoEditTriggers); // Запрещаем редактировать ячейки руками
+    usersTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
-    // НИЖНЯЯ ПАНЕЛЬ: Кнопки действий
-    QHBoxLayout* bottomLayout = new QHBoxLayout();
-    resetPassBtn = new QPushButton("Сбросить пароль", this);
-    wipeUserBtn = new QPushButton("Обнулить (Удалить историю)", this);
-    wipeUserBtn->setStyleSheet("background-color: #d32f2f; color: white; font-weight: bold;");
+    // ==== ДОБАВЛЯЕМ КОНТЕКСТНОЕ МЕНЮ ====
+    usersTable->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(usersTable, &QTableWidget::customContextMenuRequested, this, &AdminPanelWidget::showContextMenu);
 
-    connect(resetPassBtn, &QPushButton::clicked, this, &AdminPanelWidget::onResetPasswordClicked);
-    connect(wipeUserBtn, &QPushButton::clicked, this, &AdminPanelWidget::onWipeUserClicked);
-
-    bottomLayout->addWidget(resetPassBtn);
-    bottomLayout->addWidget(wipeUserBtn);
-
+    // СБОРКА ИНТЕРФЕЙСА
     mainLayout->addLayout(topLayout);
     mainLayout->addWidget(usersTable);
-    mainLayout->addLayout(bottomLayout);
+    // Нижняя панель с кнопками (reset / wipe) убрана полностью!
 }
 
 void AdminPanelWidget::updateTable(const QJsonArray& users) {
-    allUsersData = users; // Сохраняем для фильтрации
+    allUsersData = users; 
     applyFilters();
 }
 
 void AdminPanelWidget::applyFilters() {
-    usersTable->setRowCount(0); // Очищаем таблицу
+    usersTable->setRowCount(0); 
 
     QString searchText = searchEdit->text().toLower();
     QString filterType = filterCombo->currentData().toString();
@@ -73,14 +79,10 @@ void AdminPanelWidget::applyFilters() {
         bool isAdmin = u["is_admin"].toBool();
         QString ip = u["ip"].toString();
 
-        // 1. Проверка поиска
         if (!searchText.isEmpty() && !login.toLower().contains(searchText)) continue;
-
-        // 2. Проверка комбобокса
         if (filterType == "online" && !isOnline) continue;
         if (filterType == "admins" && !isAdmin) continue;
 
-        // Если прошли проверки, добавляем строку
         int row = usersTable->rowCount();
         usersTable->insertRow(row);
 
@@ -91,38 +93,42 @@ void AdminPanelWidget::applyFilters() {
     }
 }
 
-void AdminPanelWidget::onResetPasswordClicked() {
-    int row = usersTable->currentRow();
-    if (row < 0) {
-        QMessageBox::warning(this, "Ошибка", "Выберите пользователя в таблице!");
-        return;
-    }
+// ==== НОВЫЙ МЕТОД: ОБРАБОТКА ПРАВОГО КЛИКА ====
+void AdminPanelWidget::showContextMenu(const QPoint& pos) {
+    QModelIndex index = usersTable->indexAt(pos);
+    if (!index.isValid()) return;
 
-    QString targetLogin = usersTable->item(row, 0)->text();
-    
-    bool ok;
-    QString newPass = QInputDialog::getText(this, "Сброс пароля", 
-                                            "Введите новый пароль для " + targetLogin + ":", 
-                                            QLineEdit::Normal, "", &ok);
-    if (ok && !newPass.isEmpty()) {
-        client->sendResetPassword(targetLogin, newPass);
-        QMessageBox::information(this, "Успех", "Запрос на смену пароля отправлен.");
-    }
-}
+    int row = index.row();
+    QString login = usersTable->item(row, 0)->text();
 
-void AdminPanelWidget::onWipeUserClicked() {
-    int row = usersTable->currentRow();
-    if (row < 0) return;
+    QMenu contextMenu(this);
+    QAction *resetAction = contextMenu.addAction("Сбросить пароль");
+    QAction *wipeAction = contextMenu.addAction("Обнулить (Удалить историю)");
 
-    QString targetLogin = usersTable->item(row, 0)->text();
+    // Логика для "Сбросить пароль"
+    connect(resetAction, &QAction::triggered, this, [this, login]() {
+        bool ok;
+        QString newPass = QInputDialog::getText(this, "Сброс пароля", 
+                                                "Введите новый пароль для " + login + ":", 
+                                                QLineEdit::Normal, "", &ok);
+        if (ok && !newPass.isEmpty()) {
+            client->sendResetPassword(login, newPass);
+            QMessageBox::information(this, "Успех", "Запрос на смену пароля отправлен.");
+        }
+    });
 
-    QMessageBox::StandardButton reply = QMessageBox::question(this, "Подтверждение", 
-        "Вы уверены, что хотите обнулить пользователя " + targetLogin + "?\nВся его история переписки будет удалена!",
-        QMessageBox::Yes | QMessageBox::No);
+    // Логика для "Обнулить (Удалить историю)"
+    connect(wipeAction, &QAction::triggered, this, [this, login]() {
+        QMessageBox::StandardButton reply = QMessageBox::question(this, "Подтверждение", 
+            "Вы уверены, что хотите обнулить пользователя " + login + "?\nВся его история переписки будет удалена!",
+            QMessageBox::Yes | QMessageBox::No);
 
-    if (reply == QMessageBox::Yes) {
-        client->sendWipeUser(targetLogin);
-        QMessageBox::information(this, "Успех", "Команда обнуления отправлена.");
-        client->requestAdminData(); // Сразу просим сервер обновить список
-    }
+        if (reply == QMessageBox::Yes) {
+            client->sendWipeUser(login);
+            QMessageBox::information(this, "Успех", "Команда обнуления отправлена.");
+            client->requestAdminData(); 
+        }
+    });
+
+    contextMenu.exec(usersTable->viewport()->mapToGlobal(pos));
 }

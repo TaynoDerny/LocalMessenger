@@ -5,21 +5,19 @@
 
 CreateUserDialog::CreateUserDialog(QWidget *parent) : QDialog(parent) {
     setWindowTitle("Создание нового пользователя");
-    setFixedSize(300, 150); // Фиксируем размер, чтобы не растягивали
+    setFixedSize(300, 150);
 
     loginEdit = new QLineEdit(this);
     passwordEdit = new QLineEdit(this);
-    passwordEdit->setEchoMode(QLineEdit::Password); // Скрываем символы пароля
+    passwordEdit->setEchoMode(QLineEdit::Password);
     adminCheckBox = new QCheckBox("Сделать администратором", this);
 
     createBtn = new QPushButton("Создать", this);
     cancelBtn = new QPushButton("Отмена", this);
 
-    // Привязываем кнопки к встроенным слотам диалога (Принять / Отклонить)
     connect(createBtn, &QPushButton::clicked, this, &QDialog::accept);
     connect(cancelBtn, &QPushButton::clicked, this, &QDialog::reject);
 
-    // Расположение элементов
     QFormLayout *formLayout = new QFormLayout();
     formLayout->addRow("Логин:", loginEdit);
     formLayout->addRow("Пароль:", passwordEdit);

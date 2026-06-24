@@ -11,8 +11,9 @@
 #include <QHeaderView>
 #include <QInputDialog>
 #include <QMessageBox>
+#include <QMenu>
+#include <QAction>
 
-// Подключаем нашего клиента
 class MessengerClient; 
 
 class AdminPanelWidget : public QWidget {
@@ -23,21 +24,19 @@ public:
 public slots:
     void updateTable(const QJsonArray& users);
 
-private slots:
-    void applyFilters();
-    void onResetPasswordClicked();
-    void onWipeUserClicked();
-
 private:
     MessengerClient* client;
-    QJsonArray allUsersData; // Сохраняем все данные, чтобы фильтровать локально
+    QJsonArray allUsersData;
 
     QLineEdit* searchEdit;
     QComboBox* filterCombo;
     QTableWidget* usersTable;
     QPushButton* refreshBtn;
-    QPushButton* resetPassBtn;
-    QPushButton* wipeUserBtn;
+    QPushButton* createUserBtn; // Новая кнопка
 
     void setupUI();
+
+private slots:
+    void applyFilters();
+    void showContextMenu(const QPoint& pos); // Слот для открытия меню
 };
