@@ -33,6 +33,7 @@ static QPixmap createCircularAvatar(const QPixmap& source, int size) {
     QPainterPath path;
     path.addEllipse(0, 0, size, size);
     painter.setClipPath(path);
+    painter.fillPath(path, Qt::white);
     painter.drawPixmap(0, 0, cropped);
 
     // 5. Отключаем клиппинг и рисуем круглую рамочку (границу) поверх картинки

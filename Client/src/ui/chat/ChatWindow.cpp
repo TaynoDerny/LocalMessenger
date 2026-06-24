@@ -238,6 +238,7 @@ QPixmap ChatWindow::createCircularAvatarFromBase64(const QString& base64, int si
     QPainterPath path;
     path.addEllipse(0, 0, size, size);
     painter.setClipPath(path);
+    painter.fillPath(path, Qt::white); 
     painter.drawPixmap(0, 0, cropped);
 
     // Отрисовываем точку статуса (для 36px она будет 12px - идеально)
