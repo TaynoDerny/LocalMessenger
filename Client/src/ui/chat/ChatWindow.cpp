@@ -276,7 +276,11 @@ void ChatWindow::onUserListReceived(const QJsonArray& users) {
         // Генерируем аватарку ровно 36 пикселей!
         QPixmap avatarPixmap = createCircularAvatarFromBase64(avatarBase64, 36, isOnline);
         if (!avatarPixmap.isNull()) {
-            item->setIcon(QIcon(avatarPixmap));
+            QIcon icon(avatarPixmap);
+            // Запрещаем Qt менять цвета иконки при выборе элемента
+            icon.addPixmap(avatarPixmap, QIcon::Selected);
+            icon.addPixmap(avatarPixmap, QIcon::Active); // на случай, если список активен
+            item->setIcon(icon);
         }
         
         item->setForeground(QBrush(QColor("#dbdee1")));
