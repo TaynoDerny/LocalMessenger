@@ -27,20 +27,18 @@ static QPixmap createCircularAvatar(const QPixmap& source, int size) {
     final.fill(Qt::transparent);
 
     QPainter painter(&final);
-    painter.setRenderHint(QPainter::Antialiasing); // ВКЛЮЧАЕМ СГЛАЖИВАНИЕ (делает круг идеально ровным)
+    painter.setRenderHint(QPainter::Antialiasing); // ВКЛЮЧАЕМ СГЛАЖИВАНИЕ
 
     // 4. Применяем обтравочную маску (Клиппинг) к кругу
     QPainterPath path;
     path.addEllipse(0, 0, size, size);
     painter.setClipPath(path);
-    painter.fillPath(path, Qt::white);
     painter.drawPixmap(0, 0, cropped);
 
     // 5. Отключаем клиппинг и рисуем круглую рамочку (границу) поверх картинки
     painter.setClipping(false);
-    painter.setPen(QPen(QColor("#4f545c"), 3)); // Цвет и толщина границы, как в Дискорде
+    painter.setPen(QPen(QColor("#4f545c"), 3));
     painter.setBrush(Qt::NoBrush);
-    // Рисуем чуть внутри (на 1.5 пикселя), чтобы граница была ровной и не обрезалась
     painter.drawEllipse(1.5, 1.5, size - 3, size - 3);
 
     return final;
@@ -62,39 +60,14 @@ void SettingsDialog::setupUI() {
     // --- ЛЕВАЯ ПАНЕЛЬ (КАТЕГОРИИ) ---
     sidebarList = new QListWidget(this);
     sidebarList->setFixedWidth(220);
-    sidebarList->addItem("Учётная запись");
     sidebarList->addItem("Профиль");
-    sidebarList->addItem("Конфиденциальность");
     sidebarList->addItem("Внешний вид");
+    sidebarList->addItem("О приложении");
 
     // --- ПРАВАЯ ПАНЕЛЬ (КОНТЕНТ) ---
     pagesWidget = new QStackedWidget(this);
 
-    // 1. Страница: Учетная запись
-    QWidget* accountPage = new QWidget();
-    QVBoxLayout* accountLayout = new QVBoxLayout(accountPage);
-    accountLayout->setContentsMargins(40, 40, 40, 40);
-    
-    QLabel* accountTitle = new QLabel("Моя учётная запись", accountPage);
-    accountTitle->setStyleSheet("font-size: 20px; font-weight: bold; color: white; margin-bottom: 20px;");
-    QLabel* emailInfo = new QLabel("Email: ****@gmail.com", accountPage);
-    emailInfo->setStyleSheet("color: #b9bbbe; font-size: 15px; margin-bottom: 5px;");
-    QLabel* phoneInfo = new QLabel("Телефон: +7 (***) ***-**-**", accountPage);
-    phoneInfo->setStyleSheet("color: #b9bbbe; font-size: 15px; margin-bottom: 20px;");
-    
-    QPushButton* changePassBtn = new QPushButton("Сменить пароль", accountPage);
-    changePassBtn->setStyleSheet("background-color: #4f545c; color: white; border-radius: 4px; padding: 8px 16px;");
-    connect(changePassBtn, &QPushButton::clicked, this, []() {
-        QMessageBox::information(nullptr, "Смена пароля", "Здесь будет логика смены пароля через сервер (в разработке)");
-    });
-
-    accountLayout->addWidget(accountTitle);
-    accountLayout->addWidget(emailInfo);
-    accountLayout->addWidget(phoneInfo);
-    accountLayout->addWidget(changePassBtn);
-    accountLayout->addStretch();
-
-    // --- 2. Страница: Профиль (Аватар + Никнейм) ---
+    // --- 1. Страница: Профиль (Аватар + Никнейм) ---
     QWidget* profilePage = new QWidget();
     QVBoxLayout* profileLayout = new QVBoxLayout(profilePage);
     profileLayout->setContentsMargins(40, 40, 40, 40);
@@ -106,7 +79,7 @@ void SettingsDialog::setupUI() {
     QHBoxLayout* mainRowLayout = new QHBoxLayout();
     mainRowLayout->setSpacing(30);
 
-    // === Левая колонка ===
+    // Левая колонка (Аватар)
     QVBoxLayout* leftCol = new QVBoxLayout();
     leftCol->setAlignment(Qt::AlignTop);
 
@@ -121,7 +94,7 @@ void SettingsDialog::setupUI() {
     connect(changeAvatarBtn, &QPushButton::clicked, this, &SettingsDialog::onAvatarSelected);
     leftCol->addWidget(changeAvatarBtn, 0, Qt::AlignHCenter);
 
-    // === Правая колонка ===
+    // Правая колонка (Имя)
     QVBoxLayout* rightCol = new QVBoxLayout();
     rightCol->setAlignment(Qt::AlignTop);
 
@@ -151,15 +124,7 @@ void SettingsDialog::setupUI() {
     profileLayout->addLayout(mainRowLayout);
     profileLayout->addStretch();
 
-    // --- 3. Остальные страницы ---
-    QWidget* privacyPage = new QWidget();
-    QVBoxLayout* privacyLayout = new QVBoxLayout(privacyPage);
-    privacyLayout->setContentsMargins(40, 40, 40, 40);
-    QLabel* privacyLabel = new QLabel("Настройки конфиденциальности", privacyPage);
-    privacyLabel->setStyleSheet("font-size: 20px; font-weight: bold; color: white;");
-    privacyLayout->addWidget(privacyLabel);
-    privacyLayout->addStretch();
-
+    // --- 2. Страница: Внешний вид ---
     QWidget* appearancePage = new QWidget();
     QVBoxLayout* appearanceLayout = new QVBoxLayout(appearancePage);
     appearanceLayout->setContentsMargins(40, 40, 40, 40);
@@ -168,10 +133,28 @@ void SettingsDialog::setupUI() {
     appearanceLayout->addWidget(appearanceLabel);
     appearanceLayout->addStretch();
 
-    pagesWidget->addWidget(accountPage);
-    pagesWidget->addWidget(profilePage);
-    pagesWidget->addWidget(privacyPage);
-    pagesWidget->addWidget(appearancePage);
+    // --- 3. Страница: О приложении (НОВАЯ) ---
+    QWidget* aboutPage = new QWidget();
+    QVBoxLayout* aboutLayout = new QVBoxLayout(aboutPage);
+    aboutLayout->setContentsMargins(40, 40, 40, 40);
+    
+    QLabel* aboutTitle = new QLabel("О приложении", aboutPage);
+    aboutTitle->setStyleSheet("font-size: 20px; font-weight: bold; color: white; margin-bottom: 15px;");
+    aboutLayout->addWidget(aboutTitle);
+
+    QLabel* aboutText = new QLabel(
+        "Local Messenger v1.0\n\n"
+        "Мессенджер для организаций.\n"
+        "Разработан на C++ с использованием Qt6.\n"
+        "Все данные хранятся локально на сервере.", aboutPage);
+    aboutText->setStyleSheet("color: #b9bbbe; font-size: 15px; line-height: 1.5;");
+    aboutLayout->addWidget(aboutText);
+    aboutLayout->addStretch();
+
+    // Добавляем страницы в QStackedWidget строго по порядку списка
+    pagesWidget->addWidget(profilePage);    // Индекс 0
+    pagesWidget->addWidget(appearancePage); // Индекс 1
+    pagesWidget->addWidget(aboutPage);      // Индекс 2
 
     mainLayout->addWidget(sidebarList);
     mainLayout->addWidget(pagesWidget);
@@ -198,17 +181,16 @@ void SettingsDialog::loadDefaultAvatar() {
     defaultImage.fill(Qt::transparent);
 
     // Пытаемся загрузить вашу стандартную картинку из ресурсов
-    QPixmap resourcePixmap(":/images/avatar_placeholder.png"); // <-- Убедитесь, что в .qrc файле путь совпадает!
+    QPixmap resourcePixmap(":/images/avatar_placeholder.png"); 
 
     if (!resourcePixmap.isNull()) {
-        // Если файл найден - отрисовываем его в идеальный круг
         defaultImage = createCircularAvatar(resourcePixmap, 100);
     } else {
-        // Если файла нет - рисуем синий круг с вопросиком (чтобы не было пустоты)
+        // Если файла нет - рисуем синий круг с вопросиком
         QPainter painter(&defaultImage);
         painter.setRenderHint(QPainter::Antialiasing);
-        painter.setPen(QPen(QColor("#4f545c"), 3)); // Та же рамочка
-        painter.setBrush(QColor(88, 101, 242)); // Синий Discord-цвет
+        painter.setPen(QPen(QColor("#4f545c"), 3));
+        painter.setBrush(QColor(88, 101, 242));
         painter.drawEllipse(0, 0, 100, 100);
         painter.setPen(Qt::white);
         painter.setFont(QFont("Segoe UI", 20, QFont::Bold));
@@ -222,7 +204,6 @@ void SettingsDialog::onAvatarSelected() {
     QString fileName = QFileDialog::getOpenFileName(this, "Выберите аватар", "", "Изображения (*.png *.jpg *.jpeg *.bmp)");
     if (!fileName.isEmpty()) {
         QPixmap newAvatar(fileName);
-        // Применяем наше идеальное круглое обрезание
         avatarLabel->setPixmap(createCircularAvatar(newAvatar, 100));
     }
 }
@@ -243,8 +224,8 @@ void SettingsDialog::onSaveProfile() {
 
     qDebug() << "НАСТРОЙКИ: Сохраняем профиль. Имя:" << newName;
     qDebug() << "НАСТРОЙКИ: Аватарка (Base64 length):" << avatarBase64.length();
-
-    // ЗДЕСЬ ОТПРАВЛЯЕМ ВСЁ НА СЕРВЕР!
+    
+    // В будущем раскомментировать для отправки на сервер:
     // client->updateProfile(newName, avatarBase64);
     
     QMessageBox::information(this, "Успех", "Изменения профиля сохранены (локально).");
