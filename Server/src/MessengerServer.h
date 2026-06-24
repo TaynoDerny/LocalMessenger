@@ -3,7 +3,8 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QHash>
-#include <QJsonArray> // <-- Добавили для сборки списка пользователей
+#include <QJsonObject>
+#include <QJsonArray>
 #include "DatabaseManager.h"
 
 class MessengerServer : public QObject {
@@ -17,7 +18,7 @@ private:
     DatabaseManager dbManager; 
     QHash<QTcpSocket*, QString> clients; 
 
-    // <-- Новая функция для рассылки списка кто онлайн
+    // Новая функция: рассылает список пользователей с их данными
     void broadcastUserList(); 
 
 private slots:

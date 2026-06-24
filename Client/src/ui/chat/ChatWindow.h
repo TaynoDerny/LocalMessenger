@@ -8,15 +8,15 @@
 
 #include <QHBoxLayout>
 #include <QVBoxLayout>
-
 #include <QListWidgetItem> 
 #include <QHash>
-#include <QStringList>
 #include <QStackedWidget>
-
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QJsonValue>
+#include <QPixmap>
+#include <QPainter>
+#include <QPainterPath>
 
 #include "../../network/MessengerClient.h"
 #include "../admin/AdminPanelWidget.h"
@@ -29,17 +29,12 @@ public:
 private:
     MessengerClient *client;
 
-    // --- 1 колонка
     QListWidget *serversList;
     QPushButton *createGroupButton; 
-
     QPushButton *adminPanelBtn;
     AdminPanelWidget *adminWidget; 
 
-    // --- 2 колонка (Личные чаты)
     QListWidget *chatsList;
-
-    // --- 3 колонка
     QStackedWidget *mainArea; 
     QWidget *homeWidget; 
     QWidget *chatWidget; 
@@ -52,10 +47,13 @@ private:
     QString currentRecipient; 
     QHash<QString, QStringList> chatHistories;
 
+    // Обновленная функция с параметром isOnline
+    QPixmap createCircularAvatarFromBase64(const QString& base64, int size, bool isOnline);
+
 private slots:
     void onSendClicked();
     void onMessageReceived(const QString& sender, const QString& text); 
-    void onUserListReceived(const QStringList& users); 
+    void onUserListReceived(const QJsonArray& users); 
     void onChatSelected(QListWidgetItem *item);  
     void onHistoryReceived(const QString& chatWith, const QJsonArray& messages);
 };

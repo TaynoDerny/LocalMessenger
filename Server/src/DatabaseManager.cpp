@@ -1,30 +1,35 @@
-#include <QSqlQuery>
+#include "DatabaseManager.h"
 #include <QSqlError>
 #include <QCryptographicHash>
-#include <QJsonObject>
-#include "DatabaseManager.h"
 
 DatabaseManager::DatabaseManager() {
     db = QSqlDatabase::addDatabase("QSQLITE");
     db.setDatabaseName("messenger.sqlite");
     if (db.open()) {
         QSqlQuery query;
+        // Создаем таблицу Users, если нет
         query.exec("CREATE TABLE IF NOT EXISTS Users (id INTEGER PRIMARY KEY AUTOINCREMENT, login TEXT UNIQUE, password_hash TEXT, is_admin INTEGER)");
         
-        // Сразу после создания таблицы Users добавь:
+        // Создаем таблицу Messages, если нет
         query.exec("CREATE TABLE IF NOT EXISTS Messages (id INTEGER PRIMARY KEY AUTOINCREMENT, sender TEXT, recipient TEXT, message_text TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)");
-        // Надежное хеширование с явным указанием кодировки
+
+        // ДОБАВЛЯЕМ НОВЫЕ СТОЛБЦЫ, ЕСЛИ ИХ НЕТ (ALTER TABLE)
+        // Добавляем display_name (если нет)
+        if (!query.exec("SELECT display_name FROM Users LIMIT 1")) {
+            query.exec("ALTER TABLE Users ADD COLUMN display_name TEXT DEFAULT ''");
+        }
+        // Добавляем avatar_base64 (если нет)
+        if (!query.exec("SELECT avatar_base64 FROM Users LIMIT 1")) {
+            query.exec("ALTER TABLE Users ADD COLUMN avatar_base64 TEXT DEFAULT ''");
+        }
+
+        // Создаем админа по умолчанию (если его нет)
         QByteArray hashBytes = QCryptographicHash::hash(QString("1234").toUtf8(), QCryptographicHash::Sha256);
         QString defaultAdminHash = QString(hashBytes.toHex());
         
-        qDebug() << "БАЗА: Хеш админа при создании:" << defaultAdminHash;
-
-        query.prepare("INSERT OR IGNORE INTO Users (login, password_hash, is_admin) VALUES ('admin', :hash, 1)");
+        query.prepare("INSERT OR IGNORE INTO Users (login, password_hash, is_admin, display_name, avatar_base64) VALUES ('admin', :hash, 1, 'Админ', '')");
         query.bindValue(":hash", defaultAdminHash);
-        
-        if (!query.exec()) {
-            qDebug() << "БАЗА: Ошибка создания админа:" << query.lastError().text();
-        }
+        query.exec();
     } else {
         qDebug() << "БАЗА: Ошибка открытия файла БД!";
     }
@@ -34,46 +39,38 @@ bool DatabaseManager::checkUser(const QString& login, const QString& password) {
     QSqlQuery query;
     query.prepare("SELECT * FROM Users WHERE login = :login AND password_hash = :password");
     query.bindValue(":login", login);
-    query.bindValue(":password", password); // Сюда уже прилетает хеш от клиента
-    
-    if (!query.exec()) {
-        qDebug() << "БАЗА: Ошибка при поиске юзера:" << query.lastError().text();
-        return false;
-    }
-    
-    bool found = query.next();
-    if (!found) {
-        qDebug() << "БАЗА: Юзер не найден. Искали логин:" << login << "с хешем:" << password;
-    }
-    return found;
+    query.bindValue(":password", password);
+    return query.exec() && query.next();
 }
+
 bool DatabaseManager::isAdmin(const QString& login) {
     QSqlQuery query;
     query.prepare("SELECT is_admin FROM Users WHERE login = :login");
     query.bindValue(":login", login);
-    
     if (query.exec() && query.next()) {
-        return query.value(0).toInt() == 1; // 1 - значит админ, 0 - обычный
+        return query.value(0).toInt() == 1;
     }
     return false;
 }
-bool DatabaseManager::registerUser(const QString& login, const QString& password, bool isAdmin) {
+
+bool DatabaseManager::registerUser(const QString& login, const QString& password, bool isAdmin, const QString& displayName, const QString& avatarBase64) {
     QSqlQuery query;
-    // Обновляем запрос: теперь подставляем :is_admin
-    query.prepare("INSERT INTO Users (login, password_hash, is_admin) VALUES (:login, :password, :is_admin)");
+    // Используем переданные displayName и avatarBase64, либо ставим дефолт (пустую строку)
+    QString name = displayName.isEmpty() ? login : displayName;
+    
+    query.prepare("INSERT INTO Users (login, password_hash, is_admin, display_name, avatar_base64) VALUES (:login, :password, :is_admin, :name, :avatar)");
     query.bindValue(":login", login);
     query.bindValue(":password", password);
-    // Тернарный оператор: если isAdmin == true, пишем 1, иначе 0
     query.bindValue(":is_admin", isAdmin ? 1 : 0);
+    query.bindValue(":name", name);
+    query.bindValue(":avatar", avatarBase64);
 
     if (!query.exec()) {
-        qDebug() << "БАЗА ДАННЫХ: Ошибка регистрации пользователя:" << query.lastError().text();
-        return false; 
+        qDebug() << "БАЗА: Ошибка регистрации:" << query.lastError().text();
+        return false;
     }
-    
     return true;
 }
-
 
 bool DatabaseManager::saveMessage(const QString& sender, const QString& recipient, const QString& text) {
     QSqlQuery query;
@@ -81,19 +78,12 @@ bool DatabaseManager::saveMessage(const QString& sender, const QString& recipien
     query.bindValue(":sender", sender);
     query.bindValue(":recipient", recipient);
     query.bindValue(":text", text);
-    
-    if (!query.exec()) {
-        qDebug() << "БАЗА: Ошибка сохранения сообщения:" << query.lastError().text();
-        return false;
-    }
-    return true;
+    return query.exec();
 }
 
 QJsonArray DatabaseManager::getChatHistory(const QString& user1, const QString& user2) {
     QJsonArray history;
     QSqlQuery query;
-    
-    // Ищем переписку между двумя людьми (либо 1->2, либо 2->1) и сортируем по времени (по id)
     query.prepare("SELECT sender, message_text FROM Messages WHERE (sender = :u1 AND recipient = :u2) OR (sender = :u2 AND recipient = :u1) ORDER BY id ASC");
     query.bindValue(":u1", user1);
     query.bindValue(":u2", user2);
@@ -105,23 +95,50 @@ QJsonArray DatabaseManager::getChatHistory(const QString& user1, const QString& 
             msg["text"] = query.value(1).toString();
             history.append(msg);
         }
-    } else {
-        qDebug() << "БАЗА: Ошибка получения истории:" << query.lastError().text();
     }
     return history;
 }
 
+// НОВЫЙ МЕТОД: Получить данные одного юзера
+QJsonObject DatabaseManager::getUserInfo(const QString& login) {
+    QJsonObject userObj;
+    QSqlQuery query;
+    query.prepare("SELECT login, display_name, avatar_base64, is_admin FROM Users WHERE login = :login");
+    query.bindValue(":login", login);
+    
+    if (query.exec() && query.next()) {
+        userObj["login"] = query.value(0).toString();
+        userObj["display_name"] = query.value(1).toString();
+        userObj["avatar_base64"] = query.value(2).toString();
+        userObj["is_admin"] = query.value(3).toInt() == 1;
+    }
+    return userObj;
+}
+
+// НОВЫЙ МЕТОД: Получить данные ВСЕХ юзеров из БД
 QJsonArray DatabaseManager::getAllUsersInfo() {
     QJsonArray usersArray;
-    QSqlQuery query("SELECT login, is_admin FROM Users");
+    QSqlQuery query("SELECT login, display_name, avatar_base64, is_admin FROM Users");
     
     while (query.next()) {
         QJsonObject userObj;
         userObj["login"] = query.value(0).toString();
-        userObj["is_admin"] = query.value(1).toInt() == 1;
+        userObj["display_name"] = query.value(1).toString();
+        userObj["avatar_base64"] = query.value(2).toString();
+        userObj["is_admin"] = query.value(3).toInt() == 1;
         usersArray.append(userObj);
     }
     return usersArray;
+}
+
+// НОВЫЙ МЕТОД: Обновить профиль
+bool DatabaseManager::updateUserProfile(const QString& login, const QString& displayName, const QString& avatarBase64) {
+    QSqlQuery query;
+    query.prepare("UPDATE Users SET display_name = :name, avatar_base64 = :avatar WHERE login = :login");
+    query.bindValue(":name", displayName);
+    query.bindValue(":avatar", avatarBase64);
+    query.bindValue(":login", login);
+    return query.exec();
 }
 
 bool DatabaseManager::resetUserPassword(const QString& targetLogin, const QString& newPasswordHash) {
@@ -129,25 +146,12 @@ bool DatabaseManager::resetUserPassword(const QString& targetLogin, const QStrin
     query.prepare("UPDATE Users SET password_hash = :hash WHERE login = :login");
     query.bindValue(":hash", newPasswordHash);
     query.bindValue(":login", targetLogin);
-    
-    if (!query.exec()) {
-        qDebug() << "БАЗА: Ошибка сброса пароля:" << query.lastError().text();
-        return false;
-    }
-    return true;
+    return query.exec();
 }
 
 bool DatabaseManager::wipeUserData(const QString& targetLogin) {
     QSqlQuery query;
-    // Удаляем все сообщения, где юзер был либо отправителем, либо получателем
     query.prepare("DELETE FROM Messages WHERE sender = :login OR recipient = :login");
     query.bindValue(":login", targetLogin);
-    
-    if (!query.exec()) {
-        qDebug() << "БАЗА: Ошибка обнуления данных юзера:" << query.lastError().text();
-        return false;
-    }
-    
-    // ПРИМЕЧАНИЕ: Когда добавим группы, сюда же допишем удаление из таблицы групп
-    return true;
+    return query.exec();
 }

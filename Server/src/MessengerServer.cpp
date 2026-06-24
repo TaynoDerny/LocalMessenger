@@ -1,10 +1,7 @@
 #include "MessengerServer.h"
 #include <QJsonDocument>
-#include <QJsonObject>
-#include <QJsonArray>
 #include <QDebug>
 #include <QHostAddress>
-
 
 MessengerServer::MessengerServer(QObject *parent) : QObject(parent) {
     server = new QTcpServer(this);
@@ -22,28 +19,42 @@ void MessengerServer::start() {
 void MessengerServer::handleNewConnection() {
     QTcpSocket *clientSocket = server->nextPendingConnection();
     qDebug() << "СЕРВЕР: Новый клиент подключился!";
-    
-    clients[clientSocket] = ""; 
+    clients[clientSocket] = ""; // Пока не авторизован, логин пустой
 
     connect(clientSocket, &QTcpSocket::readyRead, this, &MessengerServer::handleReadyRead);
     connect(clientSocket, &QTcpSocket::disconnected, this, &MessengerServer::handleDisconnect);
 }
 
+// ================== ИЗМЕНЕННАЯ РАССЫЛКА ==================
 void MessengerServer::broadcastUserList() {
-    QJsonArray usersArray;
-    
-    for (const QString &login : clients.values()) {
-        if (!login.isEmpty()) {
-            usersArray.append(login);
+    // 1. Берем всех юзеров из БД
+    QJsonArray dbUsers = dbManager.getAllUsersInfo();
+    QJsonArray finalUserList;
+
+    // 2. Пробегаемся по каждому и добавляем онлайн-статус
+    for (const QJsonValue& val : dbUsers) {
+        QJsonObject u = val.toObject();
+        QString login = u["login"].toString();
+        
+        // Проверяем, есть ли этот логин в списке подключенных клиентов
+        bool isOnline = false;
+        for (const QString& clientLogin : clients.values()) {
+            if (clientLogin == login) {
+                isOnline = true;
+                break;
+            }
         }
+        u["online"] = isOnline;
+        finalUserList.append(u);
     }
 
     QJsonObject response;
     response["type"] = "user_list";
-    response["users"] = usersArray;
+    response["users"] = finalUserList;
 
     QByteArray responseData = QJsonDocument(response).toJson(QJsonDocument::Compact) + "\n";
 
+    // Рассылаем всем авторизованным
     for (QTcpSocket *client : clients.keys()) {
         if (!clients[client].isEmpty()) {
             client->write(responseData);
@@ -67,16 +78,19 @@ void MessengerServer::handleReadyRead() {
                 QString password = json["password"].toString();
 
                 if (dbManager.checkUser(login, password)) {
-                    qDebug() << "СЕРВЕР: Пользователь" << login << "авторизован.";
+                    qDebug() << "СЕРВЕР: Авторизован" << login;
                     clients[clientSocket] = login; 
 
-                    // --- ИЗМЕНЕНИЕ: Узнаем, админ ли это, и отправляем клиенту ---
                     bool isUserAdmin = dbManager.isAdmin(login);
-
+                    
                     QJsonObject response;
                     response["type"] = "auth_success";
-                    response["is_admin"] = isUserAdmin; // <-- КЛИЕНТ УЗНАЕТ СВОЙ СТАТУС
+                    response["is_admin"] = isUserAdmin;
                     
+                    // ОТПРАВЛЯЕМ КЛИЕНТУ ЕГО ДАННЫЕ ПРИ ВХОДЕ
+                    QJsonObject myInfo = dbManager.getUserInfo(login);
+                    response["my_info"] = myInfo;
+
                     clientSocket->write(QJsonDocument(response).toJson(QJsonDocument::Compact) + "\n");
 
                     broadcastUserList(); 
@@ -93,10 +107,8 @@ void MessengerServer::handleReadyRead() {
 
                 QJsonObject response;
                 if (dbManager.registerUser(login, password, false)) {
-                    qDebug() << "СЕРВЕР: Зарегистрирован:" << login;
                     response["type"] = "register_success";
                 } else {
-                    qDebug() << "СЕРВЕР: Ошибка регистрации:" << login;
                     response["type"] = "register_error";
                 }
                 clientSocket->write(QJsonDocument(response).toJson(QJsonDocument::Compact) + "\n");
@@ -105,8 +117,6 @@ void MessengerServer::handleReadyRead() {
                 QString text = json["text"].toString();
                 QString recipient = json["recipient"].toString(); 
                 QString senderName = clients.value(clientSocket, "Аноним"); 
-
-                qDebug() << "СЕРВЕР: Сообщение от" << senderName << "для" << recipient;
 
                 dbManager.saveMessage(senderName, recipient, text); 
 
@@ -134,52 +144,33 @@ void MessengerServer::handleReadyRead() {
                 response["type"] = "history";
                 response["with"] = withUser;
                 response["messages"] = history;
-                
                 clientSocket->write(QJsonDocument(response).toJson(QJsonDocument::Compact) + "\n");
             }
             else if (json["type"].toString() == "create_user") {
-                // --- ИЗМЕНЕНИЕ: Проверяем, кто отправляет запрос! ---
                 QString senderName = clients.value(clientSocket);
-                
-                if (!dbManager.isAdmin(senderName)) {
-                    qDebug() << "СЕРВЕР: ОТКАЗ! Юзер" << senderName << "пытается создать аккаунт, не будучи админом!🖕";
-                    return; // Игнорируем запрос хакера :)
-                }
+                if (!dbManager.isAdmin(senderName)) return;
 
                 QString newLogin = json["login"].toString();
                 QString newPassword = json["password"].toString();
                 bool isAdmin = json["is_admin"].toBool();
 
-                qDebug() << "СЕРВЕР: Админ" << senderName << "создает пользователя:" << newLogin;
-
                 if (dbManager.registerUser(newLogin, newPassword, isAdmin)) {
-                    qDebug() << "СЕРВЕР: Пользователь успешно создан и добавлен в БД:" << newLogin;
                     broadcastUserList();
-                } else {
-                    qDebug() << "СЕРВЕР: Не удалось создать пользователя:" << newLogin;
                 }
             }
             else if (json["type"].toString() == "get_admin_data") {
                 QString senderName = clients.value(clientSocket);
-                
-                // ЗАЩИТА: Только админ может запрашивать эти данные!
                 if (!dbManager.isAdmin(senderName)) return;
 
                 QJsonArray dbUsers = dbManager.getAllUsersInfo();
                 QJsonArray finalUsers;
-
-                // Пробегаемся по всем юзерам из базы и выясняем, кто в сети
                 for (const QJsonValue& val : dbUsers) {
                     QJsonObject u = val.toObject();
                     u["online"] = false;
                     u["ip"] = "Не в сети";
-
-                    // Ищем юзера среди подключенных клиентов
                     for (auto it = clients.begin(); it != clients.end(); ++it) {
                         if (it.value() == u["login"].toString()) {
                             u["online"] = true;
-                            
-                            // Вытаскиваем IP и очищаем от префикса IPv6 (если он есть)
                             QString ip = it.key()->peerAddress().toString();
                             if (ip.startsWith("::ffff:")) {
                                 ip = ip.mid(7);
@@ -190,7 +181,6 @@ void MessengerServer::handleReadyRead() {
                     }
                     finalUsers.append(u);
                 }
-
                 QJsonObject response;
                 response["type"] = "admin_data_result";
                 response["users"] = finalUsers;
@@ -198,32 +188,40 @@ void MessengerServer::handleReadyRead() {
             }
             else if (json["type"].toString() == "reset_password") {
                 QString senderName = clients.value(clientSocket);
-                if (!dbManager.isAdmin(senderName)) return; // ЗАЩИТА
+                if (!dbManager.isAdmin(senderName)) return;
 
                 QString targetUser = json["target_user"].toString();
                 QString newHash = json["new_password_hash"].toString();
-
-                if (dbManager.resetUserPassword(targetUser, newHash)) {
-                    qDebug() << "СЕРВЕР: Админ" << senderName << "сбросил пароль для" << targetUser;
-                }
+                dbManager.resetUserPassword(targetUser, newHash);
             }
             else if (json["type"].toString() == "wipe_user") {
                 QString senderName = clients.value(clientSocket);
-                if (!dbManager.isAdmin(senderName)) return; // ЗАЩИТА
+                if (!dbManager.isAdmin(senderName)) return;
 
                 QString targetUser = json["target_user"].toString();
-                
                 if (dbManager.wipeUserData(targetUser)) {
-                    qDebug() << "СЕРВЕР: Админ" << senderName << "обнулил пользователя" << targetUser;
-                    
-                    // КИКАЕМ ЮЗЕРА, ЕСЛИ ОН СЕЙЧАС ОНЛАЙН!
                     for (auto it = clients.begin(); it != clients.end(); ++it) {
                         if (it.value() == targetUser) {
-                            qDebug() << "СЕРВЕР: Принудительно отключаем" << targetUser;
                             it.key()->disconnectFromHost(); 
                             break;
                         }
                     }
+                }
+            }
+            
+            // ========== НОВАЯ ЛОГИКА: СОХРАНЕНИЕ ПРОФИЛЯ ==========
+            else if (json["type"].toString() == "update_profile") {
+                QString senderName = clients.value(clientSocket);
+                if (senderName.isEmpty()) return;
+
+                QString newName = json["new_name"].toString();
+                QString newAvatar = json["avatar_base64"].toString();
+
+                qDebug() << "СЕРВЕР: Обновляем профиль для" << senderName << "имя:" << newName;
+                
+                if (dbManager.updateUserProfile(senderName, newName, newAvatar)) {
+                    // ОБНОВЛЯЕМ СПИСОК ПОЛЬЗОВАТЕЛЕЙ У ВСЕХ КЛИЕНТОВ
+                    broadcastUserList();
                 }
             }
         }
@@ -234,14 +232,11 @@ void MessengerServer::handleDisconnect() {
     QTcpSocket *clientSocket = qobject_cast<QTcpSocket*>(sender());
     if (!clientSocket) return;
     
-    qDebug() << "СЕРВЕР: Клиент отключился.";
-    
     bool wasLoggedIn = !clients[clientSocket].isEmpty();
-    
     clients.remove(clientSocket); 
     clientSocket->deleteLater();
 
     if (wasLoggedIn) {
-        broadcastUserList();
+        broadcastUserList(); // Обновляем список, так как кто-то вышел
     }
 }

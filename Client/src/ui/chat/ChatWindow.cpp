@@ -5,9 +5,8 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     : QWidget(parent), client(client) {
 
     setAttribute(Qt::WA_DeleteOnClose);
-
     setWindowTitle("Мессенджер");
-    resize(1000, 600);
+    resize(1280, 720);
 
     QHBoxLayout *mainLayout = new QHBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0); 
@@ -16,7 +15,6 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     // ================= 1. ЛЕВАЯ ПАНЕЛЬ =================
     QWidget *serversContainer = new QWidget(this);
     serversContainer->setFixedWidth(70);
-
     QVBoxLayout *serversLayout = new QVBoxLayout(serversContainer);
     serversLayout->setContentsMargins(5, 10, 5, 10);
     serversLayout->setSpacing(10);
@@ -44,24 +42,25 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
         "QPushButton:hover { background-color: #7289da; }"
     );
     serversLayout->addWidget(adminPanelBtn, 0, Qt::AlignHCenter); 
-
-    if (!client->isAdmin()) {
-        adminPanelBtn->hide(); 
-    }
+    if (!client->isAdmin()) adminPanelBtn->hide(); 
 
     mainLayout->addWidget(serversContainer);
 
-    // ================= 2. СРЕДНЯЯ ПАНЕЛЬ =================
+    // ================= 2. СРЕДНЯЯ ПАНЕЛЬ (СДЕЛАЛИ КОМПАКТНЕЕ) =================
     QWidget *friendsContainer = new QWidget(this);
-    friendsContainer->setFixedWidth(200);
+    friendsContainer->setFixedWidth(250);
 
     QVBoxLayout *friendsLayout = new QVBoxLayout(friendsContainer);
     friendsLayout->setContentsMargins(0, 0, 0, 0);
 
     chatsList = new QListWidget(this);
+    
+    // УМЕНЬШИЛИ ИКОНКИ ДО 36px и ВЫСОТУ СТРОК ДО 40px (было 48px и 50px)
+    chatsList->setIconSize(QSize(36, 36)); 
+    chatsList->setStyleSheet("QListWidget::item { padding: 2px 10px; min-height: 40px; font-size: 14px; }");
+    
     chatsList->setObjectName("chatsList");
-    friendsLayout->addWidget(chatsList); // Кнопка "Создать пользователя" убрана!
-
+    friendsLayout->addWidget(chatsList);
     mainLayout->addWidget(friendsContainer);
 
     // ================= 3. ПРАВАЯ ПАНЕЛЬ =================
@@ -70,21 +69,16 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     rightLayout->setContentsMargins(0, 0, 0, 0);
     rightLayout->setSpacing(0);
 
-    // --- ВЕРХНЯЯ ПАНЕЛЬ ---
     QWidget *topBar = new QWidget(this);
     topBar->setFixedHeight(48);
     topBar->setStyleSheet("background-color: #36393f; border-bottom: 1px solid #202225;");
-    
     QHBoxLayout *topBarLayout = new QHBoxLayout(topBar);
     topBarLayout->setContentsMargins(15, 0, 15, 0);
     topBarLayout->addStretch();
 
     QPushButton *settingsBtn = new QPushButton("⚙️", this);
     settingsBtn->setFixedSize(30, 30);
-    settingsBtn->setStyleSheet(
-        "QPushButton { background: transparent; color: #b9bbbe; font-size: 20px; border: none; }"
-        "QPushButton:hover { color: white; }"
-    );
+    settingsBtn->setStyleSheet("QPushButton { background: transparent; color: #b9bbbe; font-size: 20px; border: none; } QPushButton:hover { color: white; }");
     topBarLayout->addWidget(settingsBtn);
 
     connect(settingsBtn, &QPushButton::clicked, this, [this]() {
@@ -92,14 +86,11 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
         overlay->setStyleSheet("background-color: rgba(0, 0, 0, 170);");
         overlay->resize(this->size());
         overlay->show();
-
         SettingsDialog dialog(this);
         dialog.exec();
-
         delete overlay;
     });
 
-    // --- РАБОЧАЯ ЗОНА ---
     mainArea = new QStackedWidget(this);
 
     homeWidget = new QWidget(this);
@@ -114,27 +105,24 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
 
     chatWidget = new QWidget(this);
     QVBoxLayout *chatLayout = new QVBoxLayout(chatWidget);
-
     chatHeader = new QLabel("Выберите чат для начала общения", this);
     messagesDisplay = new QTextEdit(this);
     messagesDisplay->setReadOnly(true); 
     messagesDisplay->setObjectName("messagesDisplay");
 
+
     QHBoxLayout *inputLayout = new QHBoxLayout();
     messageInput = new QLineEdit(this);
     messageInput->setPlaceholderText("Напишите сообщение...");
     messageInput->setObjectName("messageInput");
-
     sendButton = new QPushButton("Отправить", this);
     sendButton->setObjectName("sendButton");
-
     inputLayout->addWidget(messageInput);
     inputLayout->addWidget(sendButton);
 
     chatLayout->addWidget(chatHeader);
     chatLayout->addWidget(messagesDisplay);
     chatLayout->addLayout(inputLayout); 
-    
     mainArea->addWidget(chatWidget);
 
     adminWidget = new AdminPanelWidget(client, this);
@@ -142,10 +130,8 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
 
     rightLayout->addWidget(topBar);
     rightLayout->addWidget(mainArea);
-
     mainLayout->addWidget(rightContainer);
     setLayout(mainLayout);
-    
     mainArea->setCurrentIndex(0);
 
     // ================= КОННЕКТЫ =================
@@ -160,63 +146,44 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
         mainArea->setCurrentIndex(2);
         client->requestAdminData();
     });
-
     connect(client, &MessengerClient::adminDataReceived, adminWidget, &AdminPanelWidget::updateTable);
 }
 
-// ... Остальные методы (onSendClicked, onMessageReceived...) остаются без изменений. 
-// Вставляйте их сюда как были из оригинального файла.
+// ================= ОСТАЛЬНЫЕ МЕТОДЫ =================
 void ChatWindow::onSendClicked() {
     QString text = messageInput->text();
-    
     if (!text.isEmpty() && !currentRecipient.isEmpty()) {
         client->sendMessage(text, currentRecipient);
-        
         QString displayString = QString("<b>[Я]:</b> %1").arg(text); 
-        
         chatHistories[currentRecipient].append(displayString);
         messagesDisplay->append(displayString);
-        
         messageInput->clear(); 
     }
 }
 
 void ChatWindow::onMessageReceived(const QString& sender, const QString& text) {
     QString displayString = QString("<b>[%1]:</b> %2").arg(sender, text);
-    
     chatHistories[sender].append(displayString);
-
     if (currentRecipient == sender) {
         messagesDisplay->append(displayString);
     }
 }
 
-void ChatWindow::onUserListReceived(const QStringList& users) {
-    chatsList->clear(); 
-    for (const QString& user : users) {
-        chatsList->addItem(user); 
-    }
-}
-
 void ChatWindow::onChatSelected(QListWidgetItem *item) {
-    currentRecipient = item->text(); 
+    currentRecipient = item->data(Qt::UserRole).toString();
     chatHeader->setText("<b>Чат с:</b> " + currentRecipient); 
-    
     mainArea->setCurrentIndex(1);
     messagesDisplay->clear(); 
-    
     client->requestHistory(currentRecipient);
 }
 
 void ChatWindow::onHistoryReceived(const QString& chatWith, const QJsonArray& messages) {
     if (chatWith == currentRecipient) {
         messagesDisplay->clear(); 
-        
         for (const QJsonValue& val : messages) {
             QJsonObject msgObj = val.toObject();
             QString sender = msgObj["sender"].toString();
             QString text = msgObj["text"].toString();
-            
             QString displayString;
             if (sender == client->getMyLogin()) {
                 displayString = QString("<b>[Я]:</b> %1").arg(text);
@@ -225,5 +192,92 @@ void ChatWindow::onHistoryReceived(const QString& chatWith, const QJsonArray& me
             }
             messagesDisplay->append(displayString);
         }
+    }
+}
+
+// ================= ФУНКЦИЯ ОТРИСОВКИ АВАТАРКИ =================
+QPixmap ChatWindow::createCircularAvatarFromBase64(const QString& base64, int size, bool isOnline) {
+    QPixmap source;
+    if (!base64.isEmpty()) {
+        QByteArray data = QByteArray::fromBase64(base64.toLatin1());
+        source.loadFromData(data);
+    }
+
+    // Если аватарки нет, загружаем стандартную картинку из ресурсов
+    if (source.isNull()) {
+        source.load(":/images/avatar_placeholder.png"); 
+        
+        // Если файла нет в папке, рисуем темно-серую заглушку
+        if (source.isNull()) {
+            QPixmap fallback(size, size);
+            fallback.fill(Qt::transparent);
+            QPainter p(&fallback);
+            p.setRenderHint(QPainter::Antialiasing);
+            p.setBrush(QColor(54, 57, 63));
+            p.setPen(Qt::NoPen);
+            p.drawEllipse(0, 0, size, size);
+            p.setPen(QColor(185, 187, 190));
+            p.setFont(QFont("Segoe UI", size/2.5, QFont::Bold));
+            p.drawText(fallback.rect(), Qt::AlignCenter, "?");
+            source = fallback;
+        }
+    }
+
+    // Масштабируем и вырезаем центр
+    QPixmap scaled = source.scaled(size, size, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+    int x = (scaled.width() - size) / 2;
+    int y = (scaled.height() - size) / 2;
+    QPixmap cropped = scaled.copy(x, y, size, size);
+
+    // Отрисовываем круг из картинки
+    QPixmap final(size, size);
+    final.fill(Qt::transparent);
+    QPainter painter(&final);
+    painter.setRenderHint(QPainter::Antialiasing);
+    QPainterPath path;
+    path.addEllipse(0, 0, size, size);
+    painter.setClipPath(path);
+    painter.drawPixmap(0, 0, cropped);
+
+    // Отрисовываем точку статуса (для 36px она будет 12px - идеально)
+    if (isOnline) {
+        painter.setClipping(false); 
+        
+        // Расчет размера точки (1/3 от размера аватарки) = 12px
+        int statusSize = size / 3.0; 
+        int offset = size / 12;
+        
+        painter.setPen(QPen(QColor("#202225"), 2.5)); 
+        painter.setBrush(QColor("#43b581")); 
+        painter.drawEllipse(size - statusSize - offset, size - statusSize - offset, statusSize, statusSize);
+    }
+
+    return final;
+}
+
+// ================= ОБНОВЛЕННЫЙ СПИСОК ПОЛЬЗОВАТЕЛЕЙ =================
+void ChatWindow::onUserListReceived(const QJsonArray& users) {
+    chatsList->clear(); 
+
+    for (const QJsonValue& val : users) {
+        QJsonObject userObj = val.toObject();
+        
+        QString login = userObj["login"].toString();
+        QString displayName = userObj["display_name"].toString();
+        if (displayName.isEmpty()) displayName = login; 
+        bool isOnline = userObj["online"].toBool();
+        QString avatarBase64 = userObj["avatar_base64"].toString();
+
+        QListWidgetItem *item = new QListWidgetItem(chatsList);
+        item->setText(displayName);
+        item->setData(Qt::UserRole, login);
+
+        // Генерируем аватарку ровно 36 пикселей!
+        QPixmap avatarPixmap = createCircularAvatarFromBase64(avatarBase64, 36, isOnline);
+        if (!avatarPixmap.isNull()) {
+            item->setIcon(QIcon(avatarPixmap));
+        }
+        
+        item->setForeground(QBrush(QColor("#dbdee1")));
     }
 }

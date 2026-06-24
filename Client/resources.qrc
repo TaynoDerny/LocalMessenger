@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>style.qss</file>
-        <file>images/avatar_placeholder.png</file> <!-- Обязательно добавьте этот файл! -->
+        <file>images/avatar_placeholder.png</file> <!-- Важно: папка images/ должна существовать физически -->
     </qresource>
 </RCC>
