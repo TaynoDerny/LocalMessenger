@@ -78,10 +78,11 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
 
     connect(settingsBtn, &QPushButton::clicked, this, [this]() {
         QWidget *overlay = new QWidget(this);
-        overlay->setObjectName("overlayWidget"); // <--- Убрали setStyleSheet, дали имя
+        overlay->setObjectName("overlayWidget");
         overlay->resize(this->size());
         overlay->show();
-        SettingsDialog dialog(this);
+        // ИСПРАВЛЕНИЕ: используем this->client
+        SettingsDialog dialog(this->client, this); 
         dialog.exec();
         delete overlay;
     });

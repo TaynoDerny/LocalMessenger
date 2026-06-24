@@ -8,12 +8,16 @@
 #include <QLineEdit>
 #include <QPushButton>
 
+class MessengerClient; 
+
 class SettingsDialog : public QDialog {
     Q_OBJECT
 public:
-    explicit SettingsDialog(QWidget *parent = nullptr);
+    explicit SettingsDialog(MessengerClient *client, QWidget *parent = nullptr);
 
 private:
+    MessengerClient *client;
+
     QListWidget* sidebarList;
     QStackedWidget* pagesWidget;
 
@@ -23,11 +27,20 @@ private:
     QPushButton* changeAvatarBtn;
     QPushButton* saveProfileBtn;
 
+    // Виджеты для сети
+    QLineEdit* serverIpEdit;
+    QLineEdit* portEdit;
+    QPushButton* saveNetworkBtn;
+    QPushButton* resetNetworkBtn;
+
     void setupUI();
     void applyStyles();
     void loadDefaultAvatar();
+    void loadNetworkSettings();
 
 private slots:
     void onAvatarSelected();
     void onSaveProfile();
+    void onSaveNetworkSettings();
+    void onResetNetworkSettings();
 };
