@@ -6,65 +6,69 @@ AuthWindow::AuthWindow(MessengerClient *client, QWidget *parent)
     
     setAttribute(Qt::WA_DeleteOnClose);
 
-    // Настройки самого окна
     setWindowTitle("Вход в Мессенджер");
-    resize(300, 200);
+    resize(400, 300);
 
-    // 1. Создаем поля ввода
+    // Элементы
     loginInput = new QLineEdit(this);
     loginInput->setPlaceholderText("Логин");
-    loginInput->setObjectName("loginField"); // Имя для будущего CSS
+    loginInput->setFixedHeight(40);
 
     passwordInput = new QLineEdit(this);
     passwordInput->setPlaceholderText("Пароль");
-    passwordInput->setEchoMode(QLineEdit::Password); // Скрываем символы звездочками
-    passwordInput->setObjectName("passwordField"); // Имя для будущего CSS
+    passwordInput->setEchoMode(QLineEdit::Password);
+    passwordInput->setFixedHeight(40);
 
-    // 2. Создаем кнопку
     loginButton = new QPushButton("Войти", this);
-    loginButton->setObjectName("loginButton"); // Имя для будущего CSS
+    loginButton->setFixedHeight(40);
+    loginButton->setCursor(Qt::PointingHandCursor);
+    loginButton->setStyleSheet(
+        "QPushButton { background-color: #5865F2; border-radius: 4px; color: white; font-weight: bold; }"
+        "QPushButton:hover { background-color: #4752C4; }"
+    );
 
-    // 3. Создаем вертикальный слой и закидываем туда наши виджеты
-    QVBoxLayout *layout = new QVBoxLayout(this);
-    layout->addWidget(loginInput);
-    layout->addWidget(passwordInput);
-    layout->addWidget(loginButton);
+    // Создаем плашку с контентом
+    QFrame *loginFrame = new QFrame(this);
+    loginFrame->setStyleSheet("QFrame { background-color: #2b2d31; border-radius: 12px; }");
+    
+    QVBoxLayout *frameLayout = new QVBoxLayout(loginFrame);
+    frameLayout->setContentsMargins(30, 30, 30, 30);
+    frameLayout->setSpacing(15);
+    
+    QLabel *title = new QLabel("Local Messenger", loginFrame);
+    title->setStyleSheet("font-size: 24px; font-weight: bold; color: #5865F2; margin-bottom: 20px;");
+    title->setAlignment(Qt::AlignCenter);
 
-    // Устанавливаем этот слой основным для окна
-    setLayout(layout);
+    frameLayout->addWidget(title);
+    frameLayout->addWidget(loginInput);
+    frameLayout->addWidget(passwordInput);
+    frameLayout->addWidget(loginButton);
 
-    // 4. Связываем клик по кнопке с нашей функцией
+    // Центрируем плашку в главном окне
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setAlignment(Qt::AlignCenter);
+    mainLayout->addWidget(loginFrame);
+    mainLayout->setContentsMargins(20, 20, 20, 20);
+    setLayout(mainLayout);
+
     connect(loginButton, &QPushButton::clicked, this, &AuthWindow::onLoginClicked);
-        // СВЯЗЫВАЕМ СИГНАЛЫ СЕТИ С НАШИМИ СЛОТАМИ:
     connect(client, &MessengerClient::authSuccess, this, &AuthWindow::handleAuthSuccess);
     connect(client, &MessengerClient::authError, this, &AuthWindow::handleAuthError);
-
-
-
 }
 
 void AuthWindow::onLoginClicked() {
-    // Забираем текст из полей
     QString login = loginInput->text();
     QString password = passwordInput->text();
-
-    // Просим нашего клиента отправить эти данные на сервер!
     client->sendAuthData(login, password);
 }
 
-
 void AuthWindow::handleAuthSuccess() {
     qDebug() << "ОКНО: Логин прошел, открываем чат...";
-    
-    // Создаем основное окно чата на куче (динамически)
-    // ВАЖНО: не передаем 'this' в качестве родителя, иначе окно закроется вместе с окном авторизации
     ChatWindow *chatWindow = new ChatWindow(client);
-    chatWindow->show(); // Показываем чат
-    
-    this->close(); // Закрываем (уничтожаем) текущее окно авторизации
+    chatWindow->show(); 
+    this->close(); 
 }
 
 void AuthWindow::handleAuthError() {
-    qDebug() << "ОКНО: Ошибка входа! Надо бы юзеру об этом сказать.";
-    // Пока просто выводим в консоль, позже сделаем красивое всплывающее окошко
+    qDebug() << "ОКНО: Ошибка входа!";
 }
