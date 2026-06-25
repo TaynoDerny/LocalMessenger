@@ -13,21 +13,32 @@ DatabaseManager::DatabaseManager() {
         // Создаем таблицу Messages, если нет
         query.exec("CREATE TABLE IF NOT EXISTS Messages (id INTEGER PRIMARY KEY AUTOINCREMENT, sender TEXT, recipient TEXT, message_text TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)");
 
-        // ДОБАВЛЯЕМ НОВЫЕ СТОЛБЦЫ, ЕСЛИ ИХ НЕТ (ALTER TABLE)
-        // Добавляем display_name (если нет)
+        // ДОБАВЛЯЕМ СТОЛБЦЫ, ЕСЛИ ИХ НЕТ (ALTER TABLE)
         if (!query.exec("SELECT display_name FROM Users LIMIT 1")) {
             query.exec("ALTER TABLE Users ADD COLUMN display_name TEXT DEFAULT ''");
         }
-        // Добавляем avatar_base64 (если нет)
         if (!query.exec("SELECT avatar_base64 FROM Users LIMIT 1")) {
             query.exec("ALTER TABLE Users ADD COLUMN avatar_base64 TEXT DEFAULT ''");
+        }
+        // ========== ДОБАВЛЯЕМ НОВЫЕ ПОЛЯ ПРОФИЛЯ ==========
+        if (!query.exec("SELECT first_name FROM Users LIMIT 1")) {
+            query.exec("ALTER TABLE Users ADD COLUMN first_name TEXT DEFAULT ''");
+        }
+        if (!query.exec("SELECT last_name FROM Users LIMIT 1")) {
+            query.exec("ALTER TABLE Users ADD COLUMN last_name TEXT DEFAULT ''");
+        }
+        if (!query.exec("SELECT job_title FROM Users LIMIT 1")) {
+            query.exec("ALTER TABLE Users ADD COLUMN job_title TEXT DEFAULT ''");
+        }
+        if (!query.exec("SELECT bio FROM Users LIMIT 1")) {
+            query.exec("ALTER TABLE Users ADD COLUMN bio TEXT DEFAULT ''");
         }
 
         // Создаем админа по умолчанию (если его нет)
         QByteArray hashBytes = QCryptographicHash::hash(QString("1234").toUtf8(), QCryptographicHash::Sha256);
         QString defaultAdminHash = QString(hashBytes.toHex());
         
-        query.prepare("INSERT OR IGNORE INTO Users (login, password_hash, is_admin, display_name, avatar_base64) VALUES ('admin', :hash, 1, 'Админ', '')");
+        query.prepare("INSERT OR IGNORE INTO Users (login, password_hash, is_admin, display_name, avatar_base64, first_name, last_name, job_title, bio) VALUES ('admin', :hash, 1, 'Админ', '', 'Админ', 'Админов', 'Администратор', 'Главный администратор')");
         query.bindValue(":hash", defaultAdminHash);
         query.exec();
     } else {
@@ -55,10 +66,9 @@ bool DatabaseManager::isAdmin(const QString& login) {
 
 bool DatabaseManager::registerUser(const QString& login, const QString& password, bool isAdmin, const QString& displayName, const QString& avatarBase64) {
     QSqlQuery query;
-    // Используем переданные displayName и avatarBase64, либо ставим дефолт (пустую строку)
     QString name = displayName.isEmpty() ? login : displayName;
     
-    query.prepare("INSERT INTO Users (login, password_hash, is_admin, display_name, avatar_base64) VALUES (:login, :password, :is_admin, :name, :avatar)");
+    query.prepare("INSERT INTO Users (login, password_hash, is_admin, display_name, avatar_base64, first_name, last_name, job_title, bio) VALUES (:login, :password, :is_admin, :name, :avatar, '', '', '', '')");
     query.bindValue(":login", login);
     query.bindValue(":password", password);
     query.bindValue(":is_admin", isAdmin ? 1 : 0);
@@ -99,11 +109,11 @@ QJsonArray DatabaseManager::getChatHistory(const QString& user1, const QString& 
     return history;
 }
 
-// НОВЫЙ МЕТОД: Получить данные одного юзера
+// Получить данные одного юзера
 QJsonObject DatabaseManager::getUserInfo(const QString& login) {
     QJsonObject userObj;
     QSqlQuery query;
-    query.prepare("SELECT login, display_name, avatar_base64, is_admin FROM Users WHERE login = :login");
+    query.prepare("SELECT login, display_name, avatar_base64, is_admin, first_name, last_name, job_title, bio FROM Users WHERE login = :login");
     query.bindValue(":login", login);
     
     if (query.exec() && query.next()) {
@@ -111,14 +121,18 @@ QJsonObject DatabaseManager::getUserInfo(const QString& login) {
         userObj["display_name"] = query.value(1).toString();
         userObj["avatar_base64"] = query.value(2).toString();
         userObj["is_admin"] = query.value(3).toInt() == 1;
+        userObj["first_name"] = query.value(4).toString();
+        userObj["last_name"] = query.value(5).toString();
+        userObj["job_title"] = query.value(6).toString();
+        userObj["bio"] = query.value(7).toString();
     }
     return userObj;
 }
 
-// НОВЫЙ МЕТОД: Получить данные ВСЕХ юзеров из БД
+// Получить данные ВСЕХ юзеров из БД
 QJsonArray DatabaseManager::getAllUsersInfo() {
     QJsonArray usersArray;
-    QSqlQuery query("SELECT login, display_name, avatar_base64, is_admin FROM Users");
+    QSqlQuery query("SELECT login, display_name, avatar_base64, is_admin, first_name, last_name, job_title, bio FROM Users");
     
     while (query.next()) {
         QJsonObject userObj;
@@ -126,16 +140,23 @@ QJsonArray DatabaseManager::getAllUsersInfo() {
         userObj["display_name"] = query.value(1).toString();
         userObj["avatar_base64"] = query.value(2).toString();
         userObj["is_admin"] = query.value(3).toInt() == 1;
+        userObj["first_name"] = query.value(4).toString();
+        userObj["last_name"] = query.value(5).toString();
+        userObj["job_title"] = query.value(6).toString();
+        userObj["bio"] = query.value(7).toString();
         usersArray.append(userObj);
     }
     return usersArray;
 }
 
-// НОВЫЙ МЕТОД: Обновить профиль
-bool DatabaseManager::updateUserProfile(const QString& login, const QString& displayName, const QString& avatarBase64) {
+// Обновить профиль (с новыми полями!)
+bool DatabaseManager::updateUserProfile(const QString& login, const QString& firstName, const QString& lastName, const QString& jobTitle, const QString& bio, const QString& avatarBase64) {
     QSqlQuery query;
-    query.prepare("UPDATE Users SET display_name = :name, avatar_base64 = :avatar WHERE login = :login");
-    query.bindValue(":name", displayName);
+    query.prepare("UPDATE Users SET first_name = :fn, last_name = :ln, job_title = :jt, bio = :bio, avatar_base64 = :avatar WHERE login = :login");
+    query.bindValue(":fn", firstName);
+    query.bindValue(":ln", lastName);
+    query.bindValue(":jt", jobTitle);
+    query.bindValue(":bio", bio);
     query.bindValue(":avatar", avatarBase64);
     query.bindValue(":login", login);
     return query.exec();

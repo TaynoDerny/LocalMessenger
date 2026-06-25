@@ -23,7 +23,10 @@ public:
     // Работа с профилями пользователей
     QJsonObject getUserInfo(const QString& login); // Данные конкретного юзера
     QJsonArray getAllUsersInfo(); // Список всех юзеров с их данными
-    bool updateUserProfile(const QString& login, const QString& displayName, const QString& avatarBase64);
+    
+    // ========== ИСПРАВЛЕНИЕ: Обновлённая сигнатура с 6 аргументами ==========
+    bool updateUserProfile(const QString& login, const QString& firstName, const QString& lastName, const QString& jobTitle, const QString& bio, const QString& avatarBase64);
+    // ========================================================================
 
     // Админ функции
     bool resetUserPassword(const QString& targetLogin, const QString& newPasswordHash);

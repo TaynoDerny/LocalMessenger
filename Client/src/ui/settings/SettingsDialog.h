@@ -6,6 +6,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QPlainTextEdit> 
 #include <QPushButton>
 
 class MessengerClient; 
@@ -23,9 +24,15 @@ private:
 
     // Виджеты для профиля
     QLabel* avatarLabel;
-    QLabel* usernameLabel;     // <--- Заменили QLineEdit на QLabel
     QPushButton* changeAvatarBtn;
     QPushButton* saveProfileBtn;
+
+    // Поля ввода
+    QLineEdit* loginDisplay;    // <--- Добавили поле для отображения логина
+    QLineEdit* firstNameEdit;
+    QLineEdit* lastNameEdit;
+    QLineEdit* jobTitleEdit;
+    QPlainTextEdit* bioEdit;
 
     // Виджеты для сети
     QLineEdit* serverIpEdit;
@@ -35,8 +42,9 @@ private:
 
     void setupUI();
     void applyStyles();
-    void loadDefaultAvatar();
+    void loadProfileData();
     void loadNetworkSettings();
+    void loadDefaultAvatarFallback(); 
 
 private slots:
     void onAvatarSelected();

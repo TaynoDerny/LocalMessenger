@@ -214,13 +214,15 @@ void MessengerServer::handleReadyRead() {
                 QString senderName = clients.value(clientSocket);
                 if (senderName.isEmpty()) return;
 
-                QString newName = json["new_name"].toString();
+                QString firstName = json["first_name"].toString();
+                QString lastName = json["last_name"].toString();
+                QString jobTitle = json["job_title"].toString();
+                QString bio = json["bio"].toString();
                 QString newAvatar = json["avatar_base64"].toString();
 
-                qDebug() << "СЕРВЕР: Обновляем профиль для" << senderName << "имя:" << newName;
+                qDebug() << "СЕРВЕР: Обновляем профиль для" << senderName;
                 
-                if (dbManager.updateUserProfile(senderName, newName, newAvatar)) {
-                    // ОБНОВЛЯЕМ СПИСОК ПОЛЬЗОВАТЕЛЕЙ У ВСЕХ КЛИЕНТОВ
+                if (dbManager.updateUserProfile(senderName, firstName, lastName, jobTitle, bio, newAvatar)) {
                     broadcastUserList();
                 }
             }

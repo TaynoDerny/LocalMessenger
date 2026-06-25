@@ -15,25 +15,32 @@ public:
     QString getMyLogin() const { return myLogin; }
     bool isAdmin() const { return adminStatus; }
 
-    // ========== НОВЫЕ МЕТОДЫ ==========
+    // ========== ГЕТТЕРЫ ДЛЯ НОВЫХ ПОЛЕЙ ==========
     QString getMyAvatarBase64() const { return myAvatarBase64; }
-    void setMyAvatarBase64(const QString& base64) { myAvatarBase64 = base64; }
-    // ==================================
+    QString getMyFirstName() const { return myFirstName; }
+    QString getMyLastName() const { return myLastName; }
+    QString getMyJobTitle() const { return myJobTitle; }
+    QString getMyBio() const { return myBio; }
+    // =============================================
 
     void createAccount(const QString& login, const QString& password, bool isAdmin);
     void requestAdminData();
     void sendResetPassword(const QString& targetLogin, const QString& newPassword);
     void sendWipeUser(const QString& targetLogin);
-    void updateProfile(const QString& newName, const QString& avatarBase64);
+    
+    // ОБНОВЛЕННЫЙ МЕТОД
+    void updateProfile(const QString& firstName, const QString& lastName, const QString& jobTitle, const QString& bio, const QString& avatarBase64);
 
 private:
     QTcpSocket *socket;
     QString myLogin; 
     bool adminStatus = false;
     
-    // ========== НОВАЯ ПЕРЕМЕННАЯ ==========
-    QString myAvatarBase64; 
-    // =====================================
+    QString myAvatarBase64;
+    QString myFirstName;
+    QString myLastName;
+    QString myJobTitle;
+    QString myBio;
 
 private slots:
     void handleConnected();

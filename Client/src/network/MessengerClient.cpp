@@ -38,11 +38,15 @@ void MessengerClient::sendRegisterData(const QString& login, const QString& pass
     socket->write(QJsonDocument(json).toJson(QJsonDocument::Compact) + "\n");
 }
 
-void MessengerClient::updateProfile(const QString& newName, const QString& avatarBase64) {
+// ========== ОБНОВЛЕННЫЙ МЕТОД (Принимает 5 параметров) ==========
+void MessengerClient::updateProfile(const QString& firstName, const QString& lastName, const QString& jobTitle, const QString& bio, const QString& avatarBase64) {
     if (socket->state() == QAbstractSocket::ConnectedState) {
         QJsonObject json;
         json["type"] = "update_profile";
-        json["new_name"] = newName;
+        json["first_name"] = firstName;
+        json["last_name"] = lastName;
+        json["job_title"] = jobTitle;
+        json["bio"] = bio;
         json["avatar_base64"] = avatarBase64;
         socket->write(QJsonDocument(json).toJson(QJsonDocument::Compact) + "\n");
         qDebug() << "КЛИЕНТ: Отправляем обновление профиля на сервер";
@@ -63,12 +67,15 @@ void MessengerClient::handleReadyRead() {
 
             if (type == "auth_success") {
                 adminStatus = doc.object()["is_admin"].toBool();
-                // ========== ЗАПОМИНАЕМ СВОЮ АВАТАРКУ ПРИ ВХОДЕ ==========
+                // СЧИТЫВАЕМ ВСЕ ПОЛЯ ПРОФИЛЯ ПРИ ВХОДЕ
                 if (doc.object().contains("my_info")) {
                     QJsonObject myInfo = doc.object()["my_info"].toObject();
                     myAvatarBase64 = myInfo["avatar_base64"].toString();
+                    myFirstName = myInfo["first_name"].toString();
+                    myLastName = myInfo["last_name"].toString();
+                    myJobTitle = myInfo["job_title"].toString();
+                    myBio = myInfo["bio"].toString();
                 }
-                // ========================================================
                 qDebug() << "СЕРВЕР ОТВЕТИЛ: Доступ разрешен! Админ ли мы:" << adminStatus;
                 emit authSuccess();
             }
@@ -89,7 +96,7 @@ void MessengerClient::handleReadyRead() {
             }
             else if (type == "user_list") {
                 QJsonArray usersArray = doc.object()["users"].toArray();
-                emit userListReceived(usersArray); // <--- Передаём массив
+                emit userListReceived(usersArray);
             }
             else if (type == "history") {
                 QString withUser = doc.object()["with"].toString();

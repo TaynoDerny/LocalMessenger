@@ -12,14 +12,10 @@
 #include <QSettings>
 #include <QRegularExpressionValidator>
 #include <QIntValidator>
+#include <QFormLayout> 
 
 static QPixmap createCircularAvatar(const QPixmap& source, int size) {
-    if (source.isNull()) {
-        QPixmap empty(size, size);
-        empty.fill(Qt::transparent);
-        return empty;
-    }
-
+    if (source.isNull()) return QPixmap();
     QPixmap scaled = source.scaled(size, size, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
     int x = (scaled.width() - size) / 2;
     int y = (scaled.height() - size) / 2;
@@ -27,22 +23,17 @@ static QPixmap createCircularAvatar(const QPixmap& source, int size) {
 
     QPixmap final(size, size);
     final.fill(Qt::transparent);
-
     QPainter painter(&final);
     painter.setRenderHint(QPainter::Antialiasing);
-
     QPainterPath path;
     path.addEllipse(0, 0, size, size);
     painter.setClipPath(path);
-
-    painter.fillPath(path, Qt::white); // Белый фон за аватаркой
+    painter.fillPath(path, Qt::white); 
     painter.drawPixmap(0, 0, cropped);
-
     painter.setClipping(false);
     painter.setPen(QPen(QColor("#4f545c"), 3));
     painter.setBrush(Qt::NoBrush);
     painter.drawEllipse(1.5, 1.5, size - 3, size - 3);
-
     return final;
 }
 
@@ -51,8 +42,7 @@ SettingsDialog::SettingsDialog(MessengerClient *client, QWidget *parent)
     setupUI();
     applyStyles();
     loadNetworkSettings(); 
-    
-    resize(750, 500);
+    resize(750, 550);
     setWindowTitle("Настройки");
 }
 
@@ -80,6 +70,8 @@ void SettingsDialog::setupUI() {
 
     QHBoxLayout* mainRowLayout = new QHBoxLayout();
     mainRowLayout->setSpacing(30);
+    
+    // --- ЛЕВАЯ КОЛОНКА (АВАТАР) ---
     QVBoxLayout* leftCol = new QVBoxLayout();
     leftCol->setAlignment(Qt::AlignTop);
     avatarLabel = new QLabel(this);
@@ -87,37 +79,55 @@ void SettingsDialog::setupUI() {
     avatarLabel->setObjectName("avatarLabel");
     avatarLabel->setAlignment(Qt::AlignCenter);
     leftCol->addWidget(avatarLabel, 0, Qt::AlignHCenter);
+    
     changeAvatarBtn = new QPushButton("Сменить аватар", this);
     changeAvatarBtn->setStyleSheet("background: transparent; color: #8ea1e1; border: none; font-size: 12px; margin-top: 10px;");
     connect(changeAvatarBtn, &QPushButton::clicked, this, &SettingsDialog::onAvatarSelected);
     leftCol->addWidget(changeAvatarBtn, 0, Qt::AlignHCenter);
 
-    QVBoxLayout* rightCol = new QVBoxLayout();
-    rightCol->setAlignment(Qt::AlignTop);
-    
-    QLabel* nickLabel = new QLabel("Отображаемое имя", this);
-    nickLabel->setStyleSheet("color: #b9bbbe; font-size: 14px;");
-    rightCol->addWidget(nickLabel);
+    // --- ПРАВАЯ КОЛОНКА (ФОРМА) ---
+    QWidget* rightWidget = new QWidget();
+    QFormLayout* formLayout = new QFormLayout(rightWidget);
+    formLayout->setLabelAlignment(Qt::AlignLeft);
+    formLayout->setSpacing(12);
+    formLayout->setContentsMargins(0, 0, 0, 0);
 
-    // Имя берем из клиента (пока просто текст)
-    QLabel* usernameLabel = new QLabel(client->getMyLogin(), this);
-    usernameLabel->setStyleSheet("color: white; font-size: 18px; font-weight: bold; border: none; background: transparent;");
-    rightCol->addWidget(usernameLabel);
+    // ========== ДОБАВЛЯЕМ ЛОГИН ПЕРВЫМ ==========
+    loginDisplay = new QLineEdit(client->getMyLogin(), this);
+    loginDisplay->setReadOnly(true); // Запрещаем редактирование
+    loginDisplay->setStyleSheet("background-color: #202225; color: #b9bbbe; border-radius: 4px; padding: 8px; border: none;");
+    formLayout->addRow("Логин:", loginDisplay);
+    // ============================================
 
-    rightCol->addSpacing(20);
+    firstNameEdit = new QLineEdit(this);
+    firstNameEdit->setStyleSheet("background-color: #202225; color: white; border-radius: 4px; padding: 8px; border: none;");
+    formLayout->addRow("Имя:", firstNameEdit);
+
+    lastNameEdit = new QLineEdit(this);
+    lastNameEdit->setStyleSheet("background-color: #202225; color: white; border-radius: 4px; padding: 8px; border: none;");
+    formLayout->addRow("Фамилия:", lastNameEdit);
+
+    jobTitleEdit = new QLineEdit(this);
+    jobTitleEdit->setStyleSheet("background-color: #202225; color: white; border-radius: 4px; padding: 8px; border: none;");
+    formLayout->addRow("Должность:", jobTitleEdit);
+
+    bioEdit = new QPlainTextEdit(this);
+    bioEdit->setFixedHeight(80);
+    bioEdit->setStyleSheet("background-color: #202225; color: white; border-radius: 4px; padding: 8px; border: none;");
+    formLayout->addRow("Описание:", bioEdit);
 
     saveProfileBtn = new QPushButton("Сохранить изменения", this);
     saveProfileBtn->setObjectName("saveProfileBtn");
     connect(saveProfileBtn, &QPushButton::clicked, this, &SettingsDialog::onSaveProfile);
-    rightCol->addWidget(saveProfileBtn);
+    formLayout->addRow(saveProfileBtn); 
 
     mainRowLayout->addLayout(leftCol);
-    mainRowLayout->addLayout(rightCol);
+    mainRowLayout->addWidget(rightWidget);
     mainRowLayout->addStretch();
     profileLayout->addLayout(mainRowLayout);
     profileLayout->addStretch();
 
-    // --- СТРАНИЦА: Внешний вид ---
+    // --- Остальные страницы ---
     QWidget* appearancePage = new QWidget();
     QVBoxLayout* appearanceLayout = new QVBoxLayout(appearancePage);
     appearanceLayout->setContentsMargins(40, 40, 40, 40);
@@ -126,14 +136,13 @@ void SettingsDialog::setupUI() {
     appearanceLayout->addWidget(appearanceLabel);
     appearanceLayout->addStretch();
 
-    // --- СТРАНИЦА: Сеть ---
     QWidget* networkPage = new QWidget();
     QVBoxLayout* networkLayout = new QVBoxLayout(networkPage);
     networkLayout->setContentsMargins(40, 40, 40, 40);
     QLabel* networkTitle = new QLabel("Настройки сети", networkPage);
     networkTitle->setStyleSheet("font-size: 20px; font-weight: bold; color: white; margin-bottom: 20px;");
     networkLayout->addWidget(networkTitle);
-
+    
     QString localIp = "127.0.0.1";
     const QList<QHostAddress> &addresses = QNetworkInterface::allAddresses();
     for (const QHostAddress &address : addresses) {
@@ -142,7 +151,6 @@ void SettingsDialog::setupUI() {
             break;
         }
     }
-
     QHBoxLayout* userIpLayout = new QHBoxLayout();
     QLabel* userIpLabel = new QLabel("Ваш локальный IP:", networkPage);
     userIpLabel->setStyleSheet("color: #b9bbbe; font-size: 15px;");
@@ -153,29 +161,24 @@ void SettingsDialog::setupUI() {
     userIpLayout->addWidget(userIpEdit);
     userIpLayout->addStretch();
     networkLayout->addLayout(userIpLayout);
-
     networkLayout->addSpacing(20);
 
     QHBoxLayout* serverLayout = new QHBoxLayout();
     QLabel* serverIpLabel = new QLabel("IP сервера:", networkPage);
     serverIpLabel->setStyleSheet("color: #b9bbbe; font-size: 15px;");
-    
     serverIpEdit = new QLineEdit(networkPage);
     serverIpEdit->setStyleSheet("background-color: #202225; color: white; border-radius: 4px; padding: 8px; border: none;");
     serverIpEdit->setFixedWidth(170);
     QRegularExpression ipRegex("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
     QValidator *ipValidator = new QRegularExpressionValidator(ipRegex, serverIpEdit);
     serverIpEdit->setValidator(ipValidator);
-
     QLabel* portLabel = new QLabel("Порт:", networkPage);
     portLabel->setStyleSheet("color: #b9bbbe; font-size: 15px;");
-    
     portEdit = new QLineEdit(networkPage);
     portEdit->setFixedWidth(80);
     portEdit->setStyleSheet("background-color: #202225; color: white; border-radius: 4px; padding: 8px; border: none;");
     QValidator *portValidator = new QIntValidator(1, 65535, portEdit);
     portEdit->setValidator(portValidator);
-
     serverLayout->addWidget(serverIpLabel);
     serverLayout->addWidget(serverIpEdit);
     serverLayout->addSpacing(15);
@@ -183,17 +186,14 @@ void SettingsDialog::setupUI() {
     serverLayout->addWidget(portEdit);
     serverLayout->addStretch();
     networkLayout->addLayout(serverLayout);
-    
     networkLayout->addSpacing(30);
 
     QHBoxLayout* networkBtnLayout = new QHBoxLayout();
     networkBtnLayout->setSpacing(15);
-    
     saveNetworkBtn = new QPushButton("Сохранить и применить", networkPage);
     saveNetworkBtn->setObjectName("saveProfileBtn");
     connect(saveNetworkBtn, &QPushButton::clicked, this, &SettingsDialog::onSaveNetworkSettings);
     networkBtnLayout->addWidget(saveNetworkBtn);
-
     resetNetworkBtn = new QPushButton("Сбросить на стандартный", networkPage);
     resetNetworkBtn->setStyleSheet(
         "background-color: transparent; color: #8ea1e1; border: 1px solid #4f545c; border-radius: 4px; padding: 8px 16px;"
@@ -202,11 +202,9 @@ void SettingsDialog::setupUI() {
     connect(resetNetworkBtn, &QPushButton::clicked, this, &SettingsDialog::onResetNetworkSettings);
     networkBtnLayout->addWidget(resetNetworkBtn);
     networkBtnLayout->addStretch();
-
     networkLayout->addLayout(networkBtnLayout);
     networkLayout->addStretch();
 
-    // --- СТРАНИЦА: О приложении ---
     QWidget* aboutPage = new QWidget();
     QVBoxLayout* aboutLayout = new QVBoxLayout(aboutPage);
     aboutLayout->setContentsMargins(40, 40, 40, 40);
@@ -233,7 +231,7 @@ void SettingsDialog::setupUI() {
     connect(sidebarList, &QListWidget::currentRowChanged, pagesWidget, &QStackedWidget::setCurrentIndex);
     sidebarList->setCurrentRow(0);
 
-    loadDefaultAvatar();
+    loadProfileData(); 
 }
 
 void SettingsDialog::applyStyles() {
@@ -243,32 +241,31 @@ void SettingsDialog::applyStyles() {
         "QListWidget::item { padding: 10px; border-radius: 5px; margin-bottom: 2px; }"
         "QListWidget::item:selected { background-color: #393c43; color: white; }"
         "QListWidget::item:hover:!selected { background-color: #32353a; color: #dcddde; }"
+        "QFormLayout QLabel { color: #b9bbbe; font-size: 14px; }"
     );
 }
 
-void SettingsDialog::loadNetworkSettings() {
-    QSettings settings;
-    QString savedIp = settings.value("network/server_ip", "127.0.0.1").toString();
-    int savedPort = settings.value("network/server_port", 8080).toInt();
-
-    serverIpEdit->setText(savedIp);
-    portEdit->setText(QString::number(savedPort));
-}
-
-void SettingsDialog::loadDefaultAvatar() {
-    // ========== 1. ПЫТАЕМСЯ ЗАГРУЗИТЬ АВАТАРКУ ИЗ КЛИЕНТА ==========
+void SettingsDialog::loadProfileData() {
     QString myBase64 = client->getMyAvatarBase64();
     if (!myBase64.isEmpty()) {
         QByteArray data = QByteArray::fromBase64(myBase64.toLatin1());
         QPixmap myAvatar;
         if (myAvatar.loadFromData(data)) {
             avatarLabel->setPixmap(createCircularAvatar(myAvatar, 100));
-            return; // Если загрузилось, выходим!
+        } else {
+            loadDefaultAvatarFallback();
         }
+    } else {
+        loadDefaultAvatarFallback();
     }
-    // =================================================================
 
-    // ========== 2. ЗАГРУЗКА ПЛЕЙСХОЛДЕРА (если нет своей аватарки) ==========
+    firstNameEdit->setText(client->getMyFirstName());
+    lastNameEdit->setText(client->getMyLastName());
+    jobTitleEdit->setText(client->getMyJobTitle());
+    bioEdit->setPlainText(client->getMyBio());
+}
+
+void SettingsDialog::loadDefaultAvatarFallback() {
     QPixmap defaultImage(100, 100);
     defaultImage.fill(Qt::transparent);
     QPixmap resourcePixmap(":/images/avatar_placeholder.png"); 
@@ -287,7 +284,14 @@ void SettingsDialog::loadDefaultAvatar() {
     avatarLabel->setPixmap(defaultImage);
 }
 
-// ================= СЛОТЫ =================
+void SettingsDialog::loadNetworkSettings() {
+    QSettings settings;
+    QString savedIp = settings.value("network/server_ip", "127.0.0.1").toString();
+    int savedPort = settings.value("network/server_port", 8080).toInt();
+    serverIpEdit->setText(savedIp);
+    portEdit->setText(QString::number(savedPort));
+}
+
 void SettingsDialog::onAvatarSelected() {
     QString fileName = QFileDialog::getOpenFileName(this, "Выберите аватар", "", "Изображения (*.png *.jpg *.jpeg *.bmp)");
     if (!fileName.isEmpty()) {
@@ -305,10 +309,15 @@ void SettingsDialog::onSaveProfile() {
     QString avatarBase64 = QString::fromLatin1(byteArray.toBase64());
 
     if (client) {
-        // ========== ИСПРАВЛЕНИЕ: СОХРАНЯЕМ В ЛОКАЛЬНУЮ ПАМЯТЬ КЛИЕНТА ==========
-        client->setMyAvatarBase64(avatarBase64);
-        client->updateProfile(client->getMyLogin(), avatarBase64);
-        QMessageBox::information(this, "Успех", "Аватар успешно отправлен и обновится у всех пользователей!");
+        client->updateProfile(
+            firstNameEdit->text(),
+            lastNameEdit->text(),
+            jobTitleEdit->text(),
+            bioEdit->toPlainText(),
+            avatarBase64
+        );
+
+        //QMessageBox::information(this, "Успех", "Профиль успешно обновлен у всех пользователей!");
     } else {
         QMessageBox::warning(this, "Ошибка", "Нет соединения с сервером.");
     }
@@ -317,7 +326,6 @@ void SettingsDialog::onSaveProfile() {
 void SettingsDialog::onSaveNetworkSettings() {
     QString ip = serverIpEdit->text().trimmed();
     QString portStr = portEdit->text().trimmed();
-
     QHostAddress address;
     if (!address.setAddress(ip) || address.protocol() != QAbstractSocket::IPv4Protocol) {
         QMessageBox::warning(this, "Ошибка", "Введите корректный IPv4 адрес!");
@@ -329,11 +337,9 @@ void SettingsDialog::onSaveNetworkSettings() {
         QMessageBox::warning(this, "Ошибка", "Введите корректный порт (1-65535)!");
         return;
     }
-
     QSettings settings;
     settings.setValue("network/server_ip", ip);
     settings.setValue("network/server_port", port);
-
     if (client) {
         client->connectToServer(ip, port);
         QMessageBox::information(this, "Успех", "Настройки сети сохранены и применены!");
@@ -341,7 +347,6 @@ void SettingsDialog::onSaveNetworkSettings() {
         QMessageBox::warning(this, "Ошибка", "Клиент не найден. Перезапустите приложение, чтобы изменения вступили в силу.");
     }
 }
-
 void SettingsDialog::onResetNetworkSettings() {
     serverIpEdit->setText("127.0.0.1");
     portEdit->setText("8080");
