@@ -146,3 +146,16 @@ QWidget#leftTopBar {
     background-color: #121214;
     border-bottom: 1px solid #3D3D3D;
 }
+
+/* ================= ЗАГОЛОВОК ЛИЧНЫХ СООБЩЕНИЙ ================= */
+QLabel#dmLabel {
+    color: #b9bbbe;
+    font-size: 12px;
+    font-weight: bold;
+    padding-left: 16px;
+    padding-top: 12px;
+    padding-bottom: 4px;
+    
+    /* ========= ЦВЕТ ЗА ТЕКСТОМ ========= */
+    background-color: #121214; /* Поставьте любой HEX-цвет, который хотите */
+}

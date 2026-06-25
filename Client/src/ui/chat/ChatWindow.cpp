@@ -15,27 +15,24 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
 
     // ================= 1. ОБЩИЙ КОНТЕЙНЕР ВЕРХНЕЙ ПАНЕЛИ =================
     QWidget *topBarContainer = new QWidget(this);
-    topBarContainer->setFixedHeight(48); // <--- ФИКС: Задаем общую высоту 48px
+    topBarContainer->setFixedHeight(48);
     QHBoxLayout *topBarLayout = new QHBoxLayout(topBarContainer);
     topBarLayout->setContentsMargins(0, 0, 0, 0); 
     topBarLayout->setSpacing(0);                  
 
-    // --- 1.1. ЛЕВАЯ ЧАСТЬ ВЕРХНЕЙ ПАНЕЛИ (Цвет списка чатов) ---
+    // --- 1.1. ЛЕВАЯ ЧАСТЬ ВЕРХНЕЙ ПАНЕЛИ ---
     QWidget *leftTopBar = new QWidget(this);
     leftTopBar->setFixedWidth(280); 
-    leftTopBar->setFixedHeight(48); // <--- ФИКС: Задаем высоту левой части
-    // Задаём цвет в коде, чтобы он совпадал с friendsContainer (#2B2D31)
-    // И добавляем нижнюю границу, как у правой части
-    leftTopBar->setObjectName("leftTopBar");
+    leftTopBar->setFixedHeight(48);
+    leftTopBar->setObjectName("leftTopBar"); // Стили из style.qss
     
-    // --- 1.2. ПРАВАЯ ЧАСТЬ ВЕРХНЕЙ ПАНЕЛИ (Основной цвет шапки) ---
+    // --- 1.2. ПРАВАЯ ЧАСТЬ ВЕРХНЕЙ ПАНЕЛИ ---
     QWidget *rightTopBar = new QWidget(this);
-    rightTopBar->setObjectName("topBar"); // Подхватит стили (#1A1A1E и border) из style.qss
-    rightTopBar->setFixedHeight(48); // <--- ФИКС: Задаем высоту правой части (для надежности)
+    rightTopBar->setObjectName("topBar");
+    rightTopBar->setFixedHeight(48);
     QHBoxLayout *rightTopBarLayout = new QHBoxLayout(rightTopBar);
     rightTopBarLayout->setContentsMargins(15, 0, 15, 0);
 
-    // Кнопки перенесены сюда, В ПРАВУЮ ЧАСТЬ
     adminPanelBtn = new QPushButton("🛡️", this); 
     adminPanelBtn->setFixedSize(30, 30);
     adminPanelBtn->setObjectName("btnAdminPanel");
@@ -59,16 +56,12 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
         delete overlay;
     });
 
-    // Верстка правой шапки: [Распорка] -> [Кнопка админа] -> [Кнопка настроек]
     rightTopBarLayout->addStretch(); 
     rightTopBarLayout->addWidget(adminPanelBtn);
     rightTopBarLayout->addWidget(settingsBtn);
 
-    // Собираем верхнюю панель (Левая + Правая)
     topBarLayout->addWidget(leftTopBar);
     topBarLayout->addWidget(rightTopBar);
-
-    // Добавляем верхнюю панель в основное окно
     mainLayout->addWidget(topBarContainer);
 
 
@@ -86,6 +79,14 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     QVBoxLayout *friendsLayout = new QVBoxLayout(friendsContainer);
     friendsLayout->setContentsMargins(0, 0, 0, 0);
 
+    // ========= НОВАЯ НАДПИСЬ НАД ЧАТАМИ =========
+    QLabel *dmLabel = new QLabel("Личные сообщения", this);
+    dmLabel->setObjectName("dmLabel"); // <--- ДАЕМ ИМЯ, чтобы style.qss мог найти её
+    // Убираем старый setStyleSheet отсюда!
+    
+    friendsLayout->addWidget(dmLabel);
+    // =============================================
+
     chatsList = new QListWidget(this);
     chatsList->setIconSize(QSize(36, 36)); 
     chatsList->setObjectName("chatsList");
@@ -101,7 +102,6 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     rightLayout->setContentsMargins(0, 0, 0, 0);
     rightLayout->setSpacing(0);
 
-    // Стек с разными страницами
     mainArea = new QStackedWidget(this);
 
     homeWidget = new QWidget(this);
@@ -148,7 +148,6 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     rightLayout->addWidget(mainArea);
     contentLayout->addWidget(rightContainer);
 
-    // Добавляем контейнер с двумя колонками в основной вертикальный слой
     mainLayout->addWidget(contentContainer);
     setLayout(mainLayout);
 
