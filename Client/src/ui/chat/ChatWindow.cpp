@@ -2,6 +2,8 @@
 #include "../settings/SettingsDialog.h"
 #include <QScrollBar>
 #include <QTime>
+#include <QStatusBar> // ДОБАВИЛИ
+#include <QLabel>     // ДОБАВИЛИ
 
 // ==========================================================
 // ВНУТРЕННИЙ ВИДЖЕТ ОДНОГО СООБЩЕНИЯ
@@ -12,7 +14,6 @@ public:
         : QWidget(parent) {
         
         this->setObjectName("messageWidget");
-        // Важно: включает правильную обработку наведения курсора для QWidget
         this->setAttribute(Qt::WA_Hover, true);
 
         QHBoxLayout *hLayout = new QHBoxLayout(this);
@@ -32,7 +33,6 @@ public:
         QLabel *nameLabel = new QLabel(sender, this);
         
         QString color = isAdmin ? "#FAA61A" : "#DBDEE1";
-        // Добавлен transparent, чтобы наследовать серый фон при наведении
         nameLabel->setStyleSheet(QString("font-weight: bold; font-size: 15px; color: %1; background-color: transparent;").arg(color));
 
         QLabel *timeLabel = new QLabel(QTime::currentTime().toString("HH:mm"), this);
@@ -57,19 +57,22 @@ public:
 };
 
 // ==========================================================
-// ОСНОВНОЙ КЛАСС CHATWINDOW
+// ОСНОВНОЙ КЛАСС CHATWINDOW (ТЕПЕРЬ ОТ QMAINWINDOW)
 // ==========================================================
 ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
-    : QWidget(parent), client(client) {
+    : QMainWindow(parent), client(client) { // <--- ИЗМЕНИЛИ БАЗОВЫЙ КЛАСС
 
     setAttribute(Qt::WA_DeleteOnClose);
     setWindowTitle("Мессенджер");
     resize(1280, 720);
 
-    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    // ================= ЦЕНТРАЛЬНЫЙ ВИДЖЕТ (ВМЕСТО ПРЯМОГО НАСЛЕДОВАНИЯ) =================
+    QWidget *centralWidget = new QWidget(this);
+    QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
     mainLayout->setContentsMargins(0, 0, 0, 0); 
     mainLayout->setSpacing(0);
 
+    // ================= 1. ОБЩИЙ КОНТЕЙНЕР ВЕРХНЕЙ ПАНЕЛИ =================
     QWidget *topBarContainer = new QWidget(this);
     topBarContainer->setFixedHeight(48);
     QHBoxLayout *topBarLayout = new QHBoxLayout(topBarContainer);
@@ -97,11 +100,10 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
         client->requestAdminData();
     });
 
-    // Создаем кнопку и ставим на неё иконку из ресурсов
     QPushButton *settingsBtn = new QPushButton(this);
     settingsBtn->setIcon(QIcon(":/images/settings_icon.png"));
-    settingsBtn->setIconSize(QSize(24, 24)); // Внутренний размер иконки
-    settingsBtn->setFixedSize(30, 30);       // Размер самой кнопки
+    settingsBtn->setIconSize(QSize(24, 24));
+    settingsBtn->setFixedSize(30, 30);
     settingsBtn->setObjectName("btnSettings"); 
     connect(settingsBtn, &QPushButton::clicked, this, [this]() {
         QWidget *overlay = new QWidget(this);
@@ -121,6 +123,7 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     topBarLayout->addWidget(rightTopBar);
     mainLayout->addWidget(topBarContainer);
 
+    // ================= 2. КОНТЕЙНЕР С ДВУМЯ КОЛОНКАМИ =================
     QWidget *contentContainer = new QWidget(this);
     QHBoxLayout *contentLayout = new QHBoxLayout(contentContainer);
     contentLayout->setContentsMargins(0, 0, 0, 0); 
@@ -198,8 +201,19 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     contentLayout->addWidget(rightContainer);
 
     mainLayout->addWidget(contentContainer);
-    setLayout(mainLayout);
 
+    // ================= УСТАНАВЛИВАЕМ ЦЕНТРАЛЬНЫЙ ВИДЖЕТ =================
+    this->setCentralWidget(centralWidget);
+
+    // ================= СТРОКА СОСТОЯНИЯ (STATUS BAR) =================
+    QStatusBar *statusBar = this->statusBar();
+    QLabel *statusLabel = new QLabel("⚡ Статус: Подключено к серверу", this);
+    statusBar->addWidget(statusLabel);
+    
+    // Стилизуем строку состояния, чтобы она сливалась с вашей темой
+    statusBar->setStyleSheet("QStatusBar { background-color: #1A1A1E; color: #b9bbbe; border-top: 1px solid #3D3D3D; } QStatusBar QLabel { color: #b9bbbe; }");
+
+    // ================= НАЧАЛЬНЫЙ ЭКРАН И КОННЕКТЫ =================
     mainArea->setCurrentIndex(0);
 
     connect(messageInput, &QLineEdit::returnPressed, this, &ChatWindow::onSendClicked);
@@ -277,8 +291,6 @@ void ChatWindow::onChatSelected(QListWidgetItem *item) {
     client->requestHistory(currentRecipient);
 }
 
-// ================= ОБНОВЛЕННАЯ ЛОГИКА АВАТАРОК =================
-
 void ChatWindow::onUserListReceived(const QJsonArray& users) {
     chatsList->clear(); 
     userAvatars.clear();
@@ -294,14 +306,11 @@ void ChatWindow::onUserListReceived(const QJsonArray& users) {
         bool isAdmin = userObj["is_admin"].toBool();
         QString avatarBase64 = userObj["avatar_base64"].toString();
 
-        // ========== 1. Сначала добавляем в кеш (чтобы аватарка была в чате!) ==========
         userAdmins[login] = isAdmin;
 
         QPixmap avatarPixmapClean = createCircularAvatarFromBase64(avatarBase64, 36, false);
         userAvatars[login] = avatarPixmapClean;
 
-        // ========== 2. А теперь проверяем, добавлять ли в список ==========
-        // Если это мы сами - НЕ добавляем в список чатов, но аватарка уже в кеше!
         if (login == client->getMyLogin()) {
             continue; 
         }
@@ -310,7 +319,6 @@ void ChatWindow::onUserListReceived(const QJsonArray& users) {
         item->setText(displayName);
         item->setData(Qt::UserRole, login);
 
-        // Аватарка ДЛЯ СПИСКА (С зеленой точкой)
         QPixmap avatarPixmapWithStatus = createCircularAvatarFromBase64(avatarBase64, 36, isOnline);
         if (!avatarPixmapWithStatus.isNull()) {
             QIcon icon(avatarPixmapWithStatus);
@@ -362,7 +370,6 @@ QPixmap ChatWindow::createCircularAvatarFromBase64(const QString& base64, int si
     painter.fillPath(path, Qt::white); 
     painter.drawPixmap(0, 0, cropped);
 
-    // Рисуем точку только если isOnline true
     if (isOnline) {
         painter.setClipping(false); 
         int statusSize = size / 3.0; 

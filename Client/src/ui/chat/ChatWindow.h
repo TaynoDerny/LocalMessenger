@@ -1,5 +1,5 @@
 #pragma once
-#include <QWidget>
+#include <QMainWindow> // <--- ИЗМЕНИЛИ НА QMAINWINDOW
 #include <QListWidget>
 #include <QScrollArea>
 #include <QLineEdit>
@@ -21,7 +21,7 @@
 #include "../../network/MessengerClient.h"
 #include "../admin/AdminPanelWidget.h"
 
-class ChatWindow : public QWidget {
+class ChatWindow : public QMainWindow { // <--- ИЗМЕНИЛИ НА QMAINWINDOW
     Q_OBJECT
 public:
     explicit ChatWindow(MessengerClient *client, QWidget *parent = nullptr);
@@ -49,7 +49,6 @@ private:
     QHash<QString, QPixmap> userAvatars;
     QHash<QString, bool> userAdmins;
 
-    // Убрали isOnline из параметров, так как больше не рисуем статус на аватарке
     QPixmap createCircularAvatarFromBase64(const QString& base64, int size, bool /*isOnline*/ = false);
 
     void addMessageToChat(const QString& sender, const QString& text);
