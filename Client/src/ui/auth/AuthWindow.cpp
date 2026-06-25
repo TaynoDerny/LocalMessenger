@@ -39,39 +39,38 @@ AuthWindow::AuthWindow(MessengerClient *client, QWidget *parent)
     loginFrame->setStyleSheet("QFrame { background-color: #2b2d31; border-radius: 12px; }");
     
     QVBoxLayout *frameLayout = new QVBoxLayout(loginFrame);
-    frameLayout->setContentsMargins(30, 30, 30, 30);
+    // ========== ИСПРАВЛЕНИЕ: Немного уменьшили верхний отступ, чтобы поднять контент ==========
+    frameLayout->setContentsMargins(30, 15, 30, 30); 
     frameLayout->setSpacing(15);
 
     // ========== ИСПРАВЛЕНИЕ: Идеальное выравнивание заголовка и иконки ==========
     QHBoxLayout *headerLayout = new QHBoxLayout();
+    
     QLabel *title = new QLabel("Local Messenger", loginFrame);
     title->setStyleSheet("font-size: 24px; font-weight: bold; color: #5865F2;");
     title->setAlignment(Qt::AlignCenter);
-    
-    // 1. Растяжка слева
-    headerLayout->addStretch(1);
-    // 2. Заголовок по центру
-    headerLayout->addWidget(title, 2, Qt::AlignCenter);
-    // 3. Растяжка справа (с отступом, чтобы дать место иконке)
-    headerLayout->addStretch(3);
     
     QPushButton *settingsBtn = new QPushButton(loginFrame);
     settingsBtn->setIcon(QIcon(":/images/settings_icon.png"));
     settingsBtn->setIconSize(QSize(20, 20));
     settingsBtn->setFixedSize(32, 32);
-    // ИСПРАВЛЕНИЕ ОШИБКИ STYLESHEET: background: transparent вызывал краш. 
-    // Используем setFlat(true) для прозрачности.
-    settingsBtn->setFlat(true);
+    
+    // ========== ИСПРАВЛЕНИЕ: Убираем ошибку парсинга стилей ==========
+    settingsBtn->setStyleSheet("QPushButton { background: transparent; border: none; }");
+    // =================================================================
     
     connect(settingsBtn, &QPushButton::clicked, this, [this]() {
         SettingsDialog dialog(this->client, this, true); // true = только сеть
         dialog.exec();
     });
-    // 4. Добавляем иконку (прижимаем её к центру/правой части с небольшим отступом)
+
+    // Логика: Заголовок занимает всё свободное место (центрируется), 
+    // а кнопка встаёт строго к правому краю окна.
+    headerLayout->addWidget(title, 1, Qt::AlignCenter);
     headerLayout->addWidget(settingsBtn, 0, Qt::AlignRight | Qt::AlignVCenter);
     
     frameLayout->addLayout(headerLayout);
-    // ============================================================================
+    // ================================================================
 
     frameLayout->addWidget(loginInput);
     frameLayout->addWidget(passwordInput);
