@@ -8,11 +8,77 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     setWindowTitle("Мессенджер");
     resize(1280, 720);
 
-    QHBoxLayout *mainLayout = new QHBoxLayout(this);
+    // ================= ОСНОВНОЙ ВЕРТИКАЛЬНЫЙ СЛОЙ =================
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0); 
     mainLayout->setSpacing(0);
 
-    // ================= 1. СРЕДНЯЯ ПАНЕЛЬ (стала левой) =================
+    // ================= 1. ОБЩИЙ КОНТЕЙНЕР ВЕРХНЕЙ ПАНЕЛИ =================
+    QWidget *topBarContainer = new QWidget(this);
+    topBarContainer->setFixedHeight(48); // <--- ФИКС: Задаем общую высоту 48px
+    QHBoxLayout *topBarLayout = new QHBoxLayout(topBarContainer);
+    topBarLayout->setContentsMargins(0, 0, 0, 0); 
+    topBarLayout->setSpacing(0);                  
+
+    // --- 1.1. ЛЕВАЯ ЧАСТЬ ВЕРХНЕЙ ПАНЕЛИ (Цвет списка чатов) ---
+    QWidget *leftTopBar = new QWidget(this);
+    leftTopBar->setFixedWidth(280); 
+    leftTopBar->setFixedHeight(48); // <--- ФИКС: Задаем высоту левой части
+    // Задаём цвет в коде, чтобы он совпадал с friendsContainer (#2B2D31)
+    // И добавляем нижнюю границу, как у правой части
+    leftTopBar->setObjectName("leftTopBar");
+    
+    // --- 1.2. ПРАВАЯ ЧАСТЬ ВЕРХНЕЙ ПАНЕЛИ (Основной цвет шапки) ---
+    QWidget *rightTopBar = new QWidget(this);
+    rightTopBar->setObjectName("topBar"); // Подхватит стили (#1A1A1E и border) из style.qss
+    rightTopBar->setFixedHeight(48); // <--- ФИКС: Задаем высоту правой части (для надежности)
+    QHBoxLayout *rightTopBarLayout = new QHBoxLayout(rightTopBar);
+    rightTopBarLayout->setContentsMargins(15, 0, 15, 0);
+
+    // Кнопки перенесены сюда, В ПРАВУЮ ЧАСТЬ
+    adminPanelBtn = new QPushButton("🛡️", this); 
+    adminPanelBtn->setFixedSize(30, 30);
+    adminPanelBtn->setObjectName("btnAdminPanel");
+    if (!client->isAdmin()) adminPanelBtn->hide();
+
+    connect(adminPanelBtn, &QPushButton::clicked, this, [this, client]() {
+        mainArea->setCurrentIndex(2);
+        client->requestAdminData();
+    });
+
+    QPushButton *settingsBtn = new QPushButton("⚙️", this);
+    settingsBtn->setFixedSize(30, 30);
+    settingsBtn->setObjectName("btnSettings"); 
+    connect(settingsBtn, &QPushButton::clicked, this, [this]() {
+        QWidget *overlay = new QWidget(this);
+        overlay->setObjectName("overlayWidget");
+        overlay->resize(this->size());
+        overlay->show();
+        SettingsDialog dialog(this->client, this); 
+        dialog.exec();
+        delete overlay;
+    });
+
+    // Верстка правой шапки: [Распорка] -> [Кнопка админа] -> [Кнопка настроек]
+    rightTopBarLayout->addStretch(); 
+    rightTopBarLayout->addWidget(adminPanelBtn);
+    rightTopBarLayout->addWidget(settingsBtn);
+
+    // Собираем верхнюю панель (Левая + Правая)
+    topBarLayout->addWidget(leftTopBar);
+    topBarLayout->addWidget(rightTopBar);
+
+    // Добавляем верхнюю панель в основное окно
+    mainLayout->addWidget(topBarContainer);
+
+
+    // ================= 2. КОНТЕЙНЕР С ДВУМЯ КОЛОНКАМИ =================
+    QWidget *contentContainer = new QWidget(this);
+    QHBoxLayout *contentLayout = new QHBoxLayout(contentContainer);
+    contentLayout->setContentsMargins(0, 0, 0, 0); 
+    contentLayout->setSpacing(0);
+
+    // --- ЛЕВАЯ КОЛОНКА (Список чатов) ---
     QWidget *friendsContainer = new QWidget(this);
     friendsContainer->setFixedWidth(280); 
     friendsContainer->setObjectName("friendsContainer");
@@ -25,9 +91,9 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     chatsList->setObjectName("chatsList");
 
     friendsLayout->addWidget(chatsList);
-    mainLayout->addWidget(friendsContainer);
+    contentLayout->addWidget(friendsContainer);
 
-    // ================= 2. ПРАВАЯ ПАНЕЛЬ =================
+    // --- ПРАВАЯ КОЛОНКА (Чат / Панель администратора) ---
     QWidget *rightContainer = new QWidget(this);
     rightContainer->setObjectName("rightContainer");
 
@@ -35,46 +101,7 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     rightLayout->setContentsMargins(0, 0, 0, 0);
     rightLayout->setSpacing(0);
 
-    // --- ВЕРХНЯЯ ШАПКА ---
-    QWidget *topBar = new QWidget(this);
-    topBar->setFixedHeight(48);
-    topBar->setObjectName("topBar");
-
-    QHBoxLayout *topBarLayout = new QHBoxLayout(topBar);
-    topBarLayout->setContentsMargins(15, 0, 15, 0);
-
-    // ========= ЛЕВАЯ ЧАСТЬ: КНОПКА АДМИН-ПАНЕЛИ =========
-    adminPanelBtn = new QPushButton("🛡️", this); 
-    adminPanelBtn->setFixedSize(30, 30);
-    adminPanelBtn->setObjectName("btnAdminPanel");
-    if (!client->isAdmin()) adminPanelBtn->hide();
-
-    connect(adminPanelBtn, &QPushButton::clicked, this, [this, client]() {
-        mainArea->setCurrentIndex(2);
-        client->requestAdminData();
-    });
-    topBarLayout->addWidget(adminPanelBtn); // <--- Добавляем слева
-
-    // ========= РАСПОРКА =========
-    topBarLayout->addStretch(); // <--- Сдвигает всё что ниже в правую часть
-
-    // ========= ПРАВАЯ ЧАСТЬ: КНОПКА НАСТРОЕК =========
-    QPushButton *settingsBtn = new QPushButton("⚙️", this);
-    settingsBtn->setFixedSize(30, 30);
-    settingsBtn->setObjectName("btnSettings"); 
-    topBarLayout->addWidget(settingsBtn); // <--- Добавляем справа
-
-    connect(settingsBtn, &QPushButton::clicked, this, [this]() {
-        QWidget *overlay = new QWidget(this);
-        overlay->setObjectName("overlayWidget");
-        overlay->resize(this->size());
-        overlay->show();
-        SettingsDialog dialog(this->client, this); 
-        dialog.exec();
-        delete overlay;
-    });
-
-    // --- ОСНОВНАЯ ОБЛАСТЬ ---
+    // Стек с разными страницами
     mainArea = new QStackedWidget(this);
 
     homeWidget = new QWidget(this);
@@ -118,13 +145,17 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     adminWidget = new AdminPanelWidget(client, this);
     mainArea->addWidget(adminWidget);
 
-    rightLayout->addWidget(topBar);
     rightLayout->addWidget(mainArea);
-    mainLayout->addWidget(rightContainer);
+    contentLayout->addWidget(rightContainer);
+
+    // Добавляем контейнер с двумя колонками в основной вертикальный слой
+    mainLayout->addWidget(contentContainer);
     setLayout(mainLayout);
+
+
+    // ================= НАЧАЛЬНЫЙ ЭКРАН И КОННЕКТЫ =================
     mainArea->setCurrentIndex(0);
 
-    // ================= ОСТАЛЬНЫЕ КОННЕКТЫ =================
     connect(sendButton, &QPushButton::clicked, this, &ChatWindow::onSendClicked);
     connect(messageInput, &QLineEdit::returnPressed, this, &ChatWindow::onSendClicked);
     connect(client, &MessengerClient::messageReceived, this, &ChatWindow::onMessageReceived);
@@ -132,7 +163,6 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     connect(chatsList, &QListWidget::itemClicked, this, &ChatWindow::onChatSelected);
     connect(client, &MessengerClient::historyReceived, this, &ChatWindow::onHistoryReceived);
     
-    // Оставляем только коннект для обновления таблицы, когда с сервера приходят данные
     connect(client, &MessengerClient::adminDataReceived, adminWidget, &AdminPanelWidget::updateTable);
 }
 
