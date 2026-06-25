@@ -5,20 +5,24 @@
 #include <QVBoxLayout>
 #include "../../network/MessengerClient.h"
 
+class SettingsDialog; // <--- Прототип класса
+
 class AuthWindow : public QWidget {
     Q_OBJECT 
 public:
-    // Передаем указатель на нашего клиента, чтобы окно могло общаться с сервером
     explicit AuthWindow(MessengerClient *client, QWidget *parent = nullptr);
 
 private:
     QLineEdit *loginInput;
     QLineEdit *passwordInput;
     QPushButton *loginButton;
-    MessengerClient *client; // Ссылка на наш движок
+    MessengerClient *client;
+
+    // Не обязательно хранить указатель на settingsBtn в классе, если мы не используем его за пределами конструктора.
+    // Но если нужно, добавим: QPushButton *settingsBtn;
 
 private slots:
-    void onLoginClicked(); // Функция, которая сработает при нажатии кнопки
+    void onLoginClicked();
     void handleAuthSuccess(); 
     void handleAuthError();
 };

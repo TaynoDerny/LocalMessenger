@@ -14,10 +14,12 @@ class MessengerClient;
 class SettingsDialog : public QDialog {
     Q_OBJECT
 public:
-    explicit SettingsDialog(MessengerClient *client, QWidget *parent = nullptr);
+    // ========== ДОБАВИЛИ ПАРАМЕТР onlyNetwork ==========
+    explicit SettingsDialog(MessengerClient *client, QWidget *parent = nullptr, bool onlyNetwork = false);
 
 private:
     MessengerClient *client;
+    bool onlyNetwork; // <--- Переменная для флага
 
     QListWidget* sidebarList;
     QStackedWidget* pagesWidget;
@@ -27,8 +29,7 @@ private:
     QPushButton* changeAvatarBtn;
     QPushButton* saveProfileBtn;
 
-    // Поля ввода
-    QLineEdit* loginDisplay;    // <--- Добавили поле для отображения логина
+    QLineEdit* loginDisplay;
     QLineEdit* firstNameEdit;
     QLineEdit* lastNameEdit;
     QLineEdit* jobTitleEdit;

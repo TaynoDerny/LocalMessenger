@@ -37,13 +37,26 @@ static QPixmap createCircularAvatar(const QPixmap& source, int size) {
     return final;
 }
 
-SettingsDialog::SettingsDialog(MessengerClient *client, QWidget *parent) 
-    : QDialog(parent), client(client) {
+// ========== ОБНОВЛЕННЫЙ КОНСТРУКТОР ==========
+SettingsDialog::SettingsDialog(MessengerClient *client, QWidget *parent, bool onlyNetwork) 
+    : QDialog(parent), client(client), onlyNetwork(onlyNetwork) {
     setupUI();
     applyStyles();
     loadNetworkSettings(); 
-    resize(750, 550);
-    setWindowTitle("Настройки");
+
+    // ========== ЛОГИКА ДЛЯ ОКНА АВТОРИЗАЦИИ ==========
+    if (onlyNetwork) {
+        // Убираем сайдбар
+        sidebarList->hide();
+        sidebarList->setFixedWidth(0);
+        // Сразу переключаем на вкладку Сети (индекс 2)
+        pagesWidget->setCurrentIndex(2);
+        // Меняем заголовок
+        setWindowTitle("Настройки сервера");
+    } else {
+        resize(750, 550);
+        setWindowTitle("Настройки");
+    }
 }
 
 void SettingsDialog::setupUI() {
@@ -71,7 +84,6 @@ void SettingsDialog::setupUI() {
     QHBoxLayout* mainRowLayout = new QHBoxLayout();
     mainRowLayout->setSpacing(30);
     
-    // --- ЛЕВАЯ КОЛОНКА (АВАТАР) ---
     QVBoxLayout* leftCol = new QVBoxLayout();
     leftCol->setAlignment(Qt::AlignTop);
     avatarLabel = new QLabel(this);
@@ -85,19 +97,16 @@ void SettingsDialog::setupUI() {
     connect(changeAvatarBtn, &QPushButton::clicked, this, &SettingsDialog::onAvatarSelected);
     leftCol->addWidget(changeAvatarBtn, 0, Qt::AlignHCenter);
 
-    // --- ПРАВАЯ КОЛОНКА (ФОРМА) ---
     QWidget* rightWidget = new QWidget();
     QFormLayout* formLayout = new QFormLayout(rightWidget);
     formLayout->setLabelAlignment(Qt::AlignLeft);
     formLayout->setSpacing(12);
     formLayout->setContentsMargins(0, 0, 0, 0);
 
-    // ========== ДОБАВЛЯЕМ ЛОГИН ПЕРВЫМ ==========
     loginDisplay = new QLineEdit(client->getMyLogin(), this);
-    loginDisplay->setReadOnly(true); // Запрещаем редактирование
+    loginDisplay->setReadOnly(true);
     loginDisplay->setStyleSheet("background-color: #202225; color: #b9bbbe; border-radius: 4px; padding: 8px; border: none;");
     formLayout->addRow("Логин:", loginDisplay);
-    // ============================================
 
     firstNameEdit = new QLineEdit(this);
     firstNameEdit->setStyleSheet("background-color: #202225; color: white; border-radius: 4px; padding: 8px; border: none;");
@@ -316,10 +325,6 @@ void SettingsDialog::onSaveProfile() {
             bioEdit->toPlainText(),
             avatarBase64
         );
-
-        //QMessageBox::information(this, "Успех", "Профиль успешно обновлен у всех пользователей!");
-    } else {
-        QMessageBox::warning(this, "Ошибка", "Нет соединения с сервером.");
     }
 }
 
@@ -342,7 +347,13 @@ void SettingsDialog::onSaveNetworkSettings() {
     settings.setValue("network/server_port", port);
     if (client) {
         client->connectToServer(ip, port);
-        QMessageBox::information(this, "Успех", "Настройки сети сохранены и применены!");
+        // ========== ИЗМЕНЕННЫЙ ТЕКСТ УВЕДОМЛЕНИЯ ==========
+        if (onlyNetwork) {
+            QMessageBox::information(this, "Успех", "Настройки сервера сохранены. Теперь вы можете войти в систему.");
+        } else {
+            QMessageBox::information(this, "Успех", "Настройки сети сохранены и применены!");
+        }
+        // ==================================================
     } else {
         QMessageBox::warning(this, "Ошибка", "Клиент не найден. Перезапустите приложение, чтобы изменения вступили в силу.");
     }

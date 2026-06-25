@@ -14,6 +14,14 @@ MessengerClient::MessengerClient(QObject *parent) : QObject(parent) {
 }
 
 void MessengerClient::connectToServer(const QString& ip, quint16 port) {
+    // ========== ИСПРАВЛЕНИЕ: Если уже коннектимся или подключены - принудительно рвем ==========
+    if (socket->state() == QAbstractSocket::ConnectingState || 
+        socket->state() == QAbstractSocket::ConnectedState) {
+        socket->abort(); // Мгновенно разрывает и сбрасывает сокет
+        qDebug() << "КЛИЕНТ: Принудительно разорвано старое соединение";
+    }
+    // =============================================================================================
+
     socket->connectToHost(ip, port);
 }
 
@@ -38,7 +46,6 @@ void MessengerClient::sendRegisterData(const QString& login, const QString& pass
     socket->write(QJsonDocument(json).toJson(QJsonDocument::Compact) + "\n");
 }
 
-// ========== ОБНОВЛЕННЫЙ МЕТОД (Принимает 5 параметров) ==========
 void MessengerClient::updateProfile(const QString& firstName, const QString& lastName, const QString& jobTitle, const QString& bio, const QString& avatarBase64) {
     if (socket->state() == QAbstractSocket::ConnectedState) {
         QJsonObject json;
@@ -67,7 +74,6 @@ void MessengerClient::handleReadyRead() {
 
             if (type == "auth_success") {
                 adminStatus = doc.object()["is_admin"].toBool();
-                // СЧИТЫВАЕМ ВСЕ ПОЛЯ ПРОФИЛЯ ПРИ ВХОДЕ
                 if (doc.object().contains("my_info")) {
                     QJsonObject myInfo = doc.object()["my_info"].toObject();
                     myAvatarBase64 = myInfo["avatar_base64"].toString();
