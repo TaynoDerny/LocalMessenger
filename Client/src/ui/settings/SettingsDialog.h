@@ -23,7 +23,7 @@ private:
 
     // Виджеты для профиля
     QLabel* avatarLabel;
-    QLineEdit* usernameEdit;
+    QLabel* usernameLabel;     // <--- Заменили QLineEdit на QLabel
     QPushButton* changeAvatarBtn;
     QPushButton* saveProfileBtn;
 

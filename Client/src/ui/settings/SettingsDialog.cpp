@@ -1,5 +1,5 @@
 #include "SettingsDialog.h"
-#include "../../network/MessengerClient.h" // Добавили клиент
+#include "../../network/MessengerClient.h" 
 #include <QFileDialog>
 #include <QBuffer>
 #include <QDebug>
@@ -35,6 +35,11 @@ static QPixmap createCircularAvatar(const QPixmap& source, int size) {
     QPainterPath path;
     path.addEllipse(0, 0, size, size);
     painter.setClipPath(path);
+
+    // =========== ИСПРАВЛЕНИЕ: БЕЛЫЙ ФОН ЗА АВАТАРКОЙ ===========
+    painter.fillPath(path, Qt::white); 
+    // ============================================================
+
     painter.drawPixmap(0, 0, cropped);
 
     painter.setClipping(false);
@@ -49,7 +54,7 @@ SettingsDialog::SettingsDialog(MessengerClient *client, QWidget *parent)
     : QDialog(parent), client(client) {
     setupUI();
     applyStyles();
-    loadNetworkSettings(); // Подгружаем сохраненные настройки
+    loadNetworkSettings(); 
     
     resize(750, 500);
     setWindowTitle("Настройки");
@@ -95,16 +100,18 @@ void SettingsDialog::setupUI() {
 
     QVBoxLayout* rightCol = new QVBoxLayout();
     rightCol->setAlignment(Qt::AlignTop);
+    
+    // =========== ИСПРАВЛЕНИЕ: ЗАМЕНА ПОЛЯ ВВОДА НА ТЕКСТ ===========
     QLabel* nickLabel = new QLabel("Отображаемое имя", this);
     nickLabel->setStyleSheet("color: #b9bbbe; font-size: 14px;");
     rightCol->addWidget(nickLabel);
-    usernameEdit = new QLineEdit(this);
-    usernameEdit->setText("pokemon1903");
-    usernameEdit->setStyleSheet("background-color: #202225; color: white; border-radius: 4px; padding: 8px; border: none;");
-    rightCol->addWidget(usernameEdit);
-    QLabel* discriminator = new QLabel("#1234", this);
-    discriminator->setStyleSheet("color: #b9bbbe; font-size: 14px;");
-    rightCol->addWidget(discriminator);
+
+    // Берем имя из клиента и делаем его текстом
+    usernameLabel = new QLabel(client->getMyLogin(), this);
+    usernameLabel->setStyleSheet("color: white; font-size: 18px; font-weight: bold; border: none; background: transparent;");
+    rightCol->addWidget(usernameLabel);
+    // ===============================================================
+
     rightCol->addSpacing(20);
 
     saveProfileBtn = new QPushButton("Сохранить изменения", this);
@@ -127,7 +134,7 @@ void SettingsDialog::setupUI() {
     appearanceLayout->addWidget(appearanceLabel);
     appearanceLayout->addStretch();
 
-    // --- СТРАНИЦА: Сеть (ОБНОВЛЕНА) ---
+    // --- СТРАНИЦА: Сеть ---
     QWidget* networkPage = new QWidget();
     QVBoxLayout* networkLayout = new QVBoxLayout(networkPage);
     networkLayout->setContentsMargins(40, 40, 40, 40);
@@ -135,7 +142,6 @@ void SettingsDialog::setupUI() {
     networkTitle->setStyleSheet("font-size: 20px; font-weight: bold; color: white; margin-bottom: 20px;");
     networkLayout->addWidget(networkTitle);
 
-    // Ваш локальный IP
     QString localIp = "127.0.0.1";
     const QList<QHostAddress> &addresses = QNetworkInterface::allAddresses();
     for (const QHostAddress &address : addresses) {
@@ -158,7 +164,6 @@ void SettingsDialog::setupUI() {
 
     networkLayout->addSpacing(20);
 
-    // IP и Порт сервера (с валидацией!)
     QHBoxLayout* serverLayout = new QHBoxLayout();
     QLabel* serverIpLabel = new QLabel("IP сервера:", networkPage);
     serverIpLabel->setStyleSheet("color: #b9bbbe; font-size: 15px;");
@@ -166,7 +171,6 @@ void SettingsDialog::setupUI() {
     serverIpEdit = new QLineEdit(networkPage);
     serverIpEdit->setStyleSheet("background-color: #202225; color: white; border-radius: 4px; padding: 8px; border: none;");
     serverIpEdit->setFixedWidth(170);
-    // Валидатор IPv4 (нельзя ввести левые символы)
     QRegularExpression ipRegex("^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$");
     QValidator *ipValidator = new QRegularExpressionValidator(ipRegex, serverIpEdit);
     serverIpEdit->setValidator(ipValidator);
@@ -177,7 +181,6 @@ void SettingsDialog::setupUI() {
     portEdit = new QLineEdit(networkPage);
     portEdit->setFixedWidth(80);
     portEdit->setStyleSheet("background-color: #202225; color: white; border-radius: 4px; padding: 8px; border: none;");
-    // Валидатор порта (только цифры от 1 до 65535)
     QValidator *portValidator = new QIntValidator(1, 65535, portEdit);
     portEdit->setValidator(portValidator);
 
@@ -191,12 +194,11 @@ void SettingsDialog::setupUI() {
     
     networkLayout->addSpacing(30);
 
-    // Кнопки для сети
     QHBoxLayout* networkBtnLayout = new QHBoxLayout();
     networkBtnLayout->setSpacing(15);
     
     saveNetworkBtn = new QPushButton("Сохранить и применить", networkPage);
-    saveNetworkBtn->setObjectName("saveProfileBtn"); // Используем тот же стиль кнопок
+    saveNetworkBtn->setObjectName("saveProfileBtn");
     connect(saveNetworkBtn, &QPushButton::clicked, this, &SettingsDialog::onSaveNetworkSettings);
     networkBtnLayout->addWidget(saveNetworkBtn);
 
@@ -290,25 +292,27 @@ void SettingsDialog::onAvatarSelected() {
 }
 
 void SettingsDialog::onSaveProfile() {
-    QString newName = usernameEdit->text();
-    if (newName.isEmpty()) {
-        QMessageBox::warning(this, "Ошибка", "Имя пользователя не может быть пустым!");
-        return;
-    }
     QPixmap currentAvatar = avatarLabel->pixmap(Qt::ReturnByValue);
     QByteArray byteArray;
     QBuffer buffer(&byteArray);
     buffer.open(QIODevice::WriteOnly);
     currentAvatar.save(&buffer, "PNG");
     QString avatarBase64 = QString::fromLatin1(byteArray.toBase64());
-    QMessageBox::information(this, "Успех", "Изменения профиля сохранены (локально).");
+
+    // =========== ИСПРАВЛЕНИЕ: Сохраняем только аватар ===========
+    if (client) {
+        // Текущее имя не меняется, отправляем логин (сервер все равно обновит только аватар по этому запросу)
+        client->updateProfile(client->getMyLogin(), avatarBase64);
+        QMessageBox::information(this, "Успех", "Аватар успешно обновлен!");
+    } else {
+        QMessageBox::warning(this, "Ошибка", "Нет соединения с сервером.");
+    }
 }
 
 void SettingsDialog::onSaveNetworkSettings() {
     QString ip = serverIpEdit->text().trimmed();
     QString portStr = portEdit->text().trimmed();
 
-    // Двойная проверка IP через QHostAddress (для надёжности)
     QHostAddress address;
     if (!address.setAddress(ip) || address.protocol() != QAbstractSocket::IPv4Protocol) {
         QMessageBox::warning(this, "Ошибка", "Введите корректный IPv4 адрес!");
@@ -321,14 +325,11 @@ void SettingsDialog::onSaveNetworkSettings() {
         return;
     }
 
-    // Сохраняем в реестр/конфиг
     QSettings settings;
     settings.setValue("network/server_ip", ip);
     settings.setValue("network/server_port", port);
 
-    // ПРИМЕНЯЕМ НА СЕРВЕР (Реально переподключаемся)
     if (client) {
-        // Если сокет был уже открыт, он закроется и переподключится автоматически внутри клиента
         client->connectToServer(ip, port);
         QMessageBox::information(this, "Успех", "Настройки сети сохранены и применены!");
     } else {
