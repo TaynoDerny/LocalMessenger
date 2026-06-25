@@ -291,13 +291,23 @@ void ChatWindow::onUserListReceived(const QJsonArray& users) {
         bool isAdmin = userObj["is_admin"].toBool();
         QString avatarBase64 = userObj["avatar_base64"].toString();
 
+        // ========== 1. Сначала добавляем в кеш (чтобы аватарка была в чате!) ==========
         userAdmins[login] = isAdmin;
+
+        QPixmap avatarPixmapClean = createCircularAvatarFromBase64(avatarBase64, 36, false);
+        userAvatars[login] = avatarPixmapClean;
+
+        // ========== 2. А теперь проверяем, добавлять ли в список ==========
+        // Если это мы сами - НЕ добавляем в список чатов, но аватарка уже в кеше!
+        if (login == client->getMyLogin()) {
+            continue; 
+        }
 
         QListWidgetItem *item = new QListWidgetItem(chatsList);
         item->setText(displayName);
         item->setData(Qt::UserRole, login);
 
-        // 1. Аватарка ДЛЯ СПИСКА (С зеленой точкой)
+        // Аватарка ДЛЯ СПИСКА (С зеленой точкой)
         QPixmap avatarPixmapWithStatus = createCircularAvatarFromBase64(avatarBase64, 36, isOnline);
         if (!avatarPixmapWithStatus.isNull()) {
             QIcon icon(avatarPixmapWithStatus);
@@ -305,10 +315,6 @@ void ChatWindow::onUserListReceived(const QJsonArray& users) {
             icon.addPixmap(avatarPixmapWithStatus, QIcon::Active);
             item->setIcon(icon);
         }
-
-        // 2. Аватарка ДЛЯ ЧАТА (БЕЗ зеленой точки, храним в кеше)
-        QPixmap avatarPixmapClean = createCircularAvatarFromBase64(avatarBase64, 36, false);
-        userAvatars[login] = avatarPixmapClean;
 
         item->setForeground(QBrush(QColor("#dbdee1")));
     }
