@@ -1,6 +1,60 @@
 #include "ChatWindow.h"
 #include "../settings/SettingsDialog.h"
+#include <QScrollBar>
+#include <QTime>
 
+// ==========================================================
+// ВНУТРЕННИЙ ВИДЖЕТ ОДНОГО СООБЩЕНИЯ (В СТИЛЕ DISCORD)
+// ==========================================================
+class MessageWidget : public QWidget {
+public:
+    MessageWidget(const QString& sender, const QString& text, const QPixmap& avatar, bool isAdmin, QWidget *parent = nullptr)
+        : QWidget(parent) {
+        QHBoxLayout *hLayout = new QHBoxLayout(this);
+        hLayout->setContentsMargins(15, 8, 15, 8);
+        hLayout->setSpacing(15);
+
+        // Аватарка собеседника
+        QLabel *avatarLabel = new QLabel(this);
+        avatarLabel->setPixmap(avatar);
+        avatarLabel->setFixedSize(40, 40);
+        hLayout->addWidget(avatarLabel, 0, Qt::AlignTop);
+
+        // Текстовый блок
+        QVBoxLayout *vLayout = new QVBoxLayout();
+        vLayout->setSpacing(4);
+
+        // Верхняя строка: Имя + Время
+        QHBoxLayout *metaLayout = new QHBoxLayout();
+        QLabel *nameLabel = new QLabel(sender, this);
+        
+        // Дискордовские цвета: Админ - оранжевый, обычный - светлый
+        QString color = isAdmin ? "#FAA61A" : "#DBDEE1";
+        nameLabel->setStyleSheet(QString("font-weight: bold; font-size: 15px; color: %1;").arg(color));
+
+        QLabel *timeLabel = new QLabel(QTime::currentTime().toString("HH:mm"), this);
+        timeLabel->setStyleSheet("color: #72767d; font-size: 12px;");
+
+        metaLayout->addWidget(nameLabel);
+        metaLayout->addWidget(timeLabel);
+        metaLayout->addStretch();
+
+        // Текст сообщения
+        QLabel *textLabel = new QLabel(text, this);
+        textLabel->setWordWrap(true);
+        textLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        textLabel->setStyleSheet("color: #dcddde; font-size: 15px; line-height: 1.4;");
+
+        vLayout->addLayout(metaLayout);
+        vLayout->addWidget(textLabel);
+        hLayout->addLayout(vLayout);
+        hLayout->addStretch();
+    }
+};
+
+// ==========================================================
+// ОСНОВНОЙ КЛАСС CHATWINDOW
+// ==========================================================
 ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     : QWidget(parent), client(client) {
 
@@ -20,13 +74,11 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     topBarLayout->setContentsMargins(0, 0, 0, 0); 
     topBarLayout->setSpacing(0);                  
 
-    // --- 1.1. ЛЕВАЯ ЧАСТЬ ВЕРХНЕЙ ПАНЕЛИ ---
     QWidget *leftTopBar = new QWidget(this);
     leftTopBar->setFixedWidth(280); 
     leftTopBar->setFixedHeight(48);
-    leftTopBar->setObjectName("leftTopBar"); // Стили из style.qss
+    leftTopBar->setObjectName("leftTopBar");
     
-    // --- 1.2. ПРАВАЯ ЧАСТЬ ВЕРХНЕЙ ПАНЕЛИ ---
     QWidget *rightTopBar = new QWidget(this);
     rightTopBar->setObjectName("topBar");
     rightTopBar->setFixedHeight(48);
@@ -64,84 +116,83 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     topBarLayout->addWidget(rightTopBar);
     mainLayout->addWidget(topBarContainer);
 
-
     // ================= 2. КОНТЕЙНЕР С ДВУМЯ КОЛОНКАМИ =================
     QWidget *contentContainer = new QWidget(this);
     QHBoxLayout *contentLayout = new QHBoxLayout(contentContainer);
     contentLayout->setContentsMargins(0, 0, 0, 0); 
     contentLayout->setSpacing(0);
 
-    // --- ЛЕВАЯ КОЛОНКА (Список чатов) ---
+    // --- ЛЕВАЯ КОЛОНКА ---
     QWidget *friendsContainer = new QWidget(this);
     friendsContainer->setFixedWidth(280); 
     friendsContainer->setObjectName("friendsContainer");
-
     QVBoxLayout *friendsLayout = new QVBoxLayout(friendsContainer);
     friendsLayout->setContentsMargins(0, 0, 0, 0);
 
-    // ========= НОВАЯ НАДПИСЬ НАД ЧАТАМИ =========
     QLabel *dmLabel = new QLabel("Личные сообщения", this);
-    dmLabel->setObjectName("dmLabel"); // <--- ДАЕМ ИМЯ, чтобы style.qss мог найти её
-    // Убираем старый setStyleSheet отсюда!
-    
+    dmLabel->setObjectName("dmLabel");
     friendsLayout->addWidget(dmLabel);
-    // =============================================
 
     chatsList = new QListWidget(this);
     chatsList->setIconSize(QSize(36, 36)); 
     chatsList->setObjectName("chatsList");
-
     friendsLayout->addWidget(chatsList);
     contentLayout->addWidget(friendsContainer);
 
-    // --- ПРАВАЯ КОЛОНКА (Чат / Панель администратора) ---
+    // --- ПРАВАЯ КОЛОНКА ---
     QWidget *rightContainer = new QWidget(this);
     rightContainer->setObjectName("rightContainer");
-
     QVBoxLayout *rightLayout = new QVBoxLayout(rightContainer);
     rightLayout->setContentsMargins(0, 0, 0, 0);
     rightLayout->setSpacing(0);
 
     mainArea = new QStackedWidget(this);
 
+    // Экран "Дома" (пустой)
     homeWidget = new QWidget(this);
     homeWidget->setObjectName("homeWidget");
     QVBoxLayout *homeLayout = new QVBoxLayout(homeWidget);
     QLabel *welcomeLabel = new QLabel("Выберите чат или группу слева", this);
     welcomeLabel->setAlignment(Qt::AlignCenter);
-    QFont font = welcomeLabel->font();
-    font.setPointSize(14);
-    welcomeLabel->setFont(font);
+    welcomeLabel->setStyleSheet("color: #72767d; font-size: 18px;");
     homeLayout->addWidget(welcomeLabel);
     mainArea->addWidget(homeWidget);
 
+    // Экран "Чат"
     chatWidget = new QWidget(this);
     chatWidget->setObjectName("chatWidget");
     QVBoxLayout *chatLayout = new QVBoxLayout(chatWidget);
+    chatLayout->setContentsMargins(0, 0, 0, 0);
     
     chatHeader = new QLabel("Выберите чат для начала общения", this);
     chatHeader->setObjectName("chatHeader");
-    
-    messagesDisplay = new QTextEdit(this);
-    messagesDisplay->setReadOnly(true); 
-    messagesDisplay->setObjectName("messagesDisplay");
+    chatLayout->addWidget(chatHeader);
 
-    QHBoxLayout *inputLayout = new QHBoxLayout();
+    // ====== ЗАМЕНА ОКНА ЧАТА НА QSCROLLAREA ======
+    messagesContainer = new QWidget();
+    messagesLayout = new QVBoxLayout(messagesContainer);
+    messagesLayout->setContentsMargins(0, 5, 0, 10);
+    messagesLayout->setSpacing(0);
+    messagesLayout->addStretch(); // Растяжка, чтобы сообщения прижимались к верху
+
+    messagesArea = new QScrollArea();
+    messagesArea->setWidget(messagesContainer);
+    messagesArea->setWidgetResizable(true);
+    messagesArea->setFrameShape(QFrame::NoFrame); // Убираем рамку
+    messagesArea->setStyleSheet("background-color: #1A1A1E;");
+    chatLayout->addWidget(messagesArea);
+
+    // ====== ПАНЕЛЬ ВВОДА (БЕЗ КНОПКИ ОТПРАВИТЬ) ======
     messageInput = new QLineEdit(this);
     messageInput->setPlaceholderText("Напишите сообщение...");
     messageInput->setObjectName("messageInput");
+    messageInput->setFixedHeight(44);
+    messageInput->setContentsMargins(15, 0, 15, 0);
     
-    sendButton = new QPushButton("Отправить", this);
-    sendButton->setObjectName("sendButton");
-    
-    inputLayout->addWidget(messageInput);
-    inputLayout->addWidget(sendButton);
-
-    chatLayout->addWidget(chatHeader);
-    chatLayout->addWidget(messagesDisplay);
-    chatLayout->addLayout(inputLayout); 
+    chatLayout->addWidget(messageInput);
     mainArea->addWidget(chatWidget);
 
+    // Экран "Админ панель"
     adminWidget = new AdminPanelWidget(client, this);
     mainArea->addWidget(adminWidget);
 
@@ -152,36 +203,83 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     setLayout(mainLayout);
 
 
-    // ================= НАЧАЛЬНЫЙ ЭКРАН И КОННЕКТЫ =================
+    // ================= СОЕДИНЕНИЯ И НАЧАЛЬНЫЙ ЭКРАН =================
     mainArea->setCurrentIndex(0);
 
-    connect(sendButton, &QPushButton::clicked, this, &ChatWindow::onSendClicked);
+    // Вместо кнопки отправляем по Enter
     connect(messageInput, &QLineEdit::returnPressed, this, &ChatWindow::onSendClicked);
     connect(client, &MessengerClient::messageReceived, this, &ChatWindow::onMessageReceived);
     connect(client, &MessengerClient::userListReceived, this, &ChatWindow::onUserListReceived);
     connect(chatsList, &QListWidget::itemClicked, this, &ChatWindow::onChatSelected);
     connect(client, &MessengerClient::historyReceived, this, &ChatWindow::onHistoryReceived);
-    
     connect(client, &MessengerClient::adminDataReceived, adminWidget, &AdminPanelWidget::updateTable);
 }
 
-// ================= ОСТАЛЬНЫЕ МЕТОДЫ (БЕЗ ИЗМЕНЕНИЙ) =================
+// ================= НОВЫЕ МЕТОДЫ ДЛЯ СООБЩЕНИЙ =================
+
+void ChatWindow::clearChatMessages() {
+    // Очищаем контейнер, но сохраняем последний элемент stretch
+    while (QLayoutItem* item = messagesLayout->takeAt(0)) {
+        if (item->widget()) {
+            delete item->widget();
+        }
+        delete item;
+    }
+    // Добавляем растяжку обратно
+    messagesLayout->addStretch();
+}
+
+void ChatWindow::addMessageToChat(const QString& sender, const QString& text) {
+    // Загружаем аватарку из кеша (она точно есть, потому что чаты мы обновляем)
+    QPixmap avatar = userAvatars.value(sender, QPixmap());
+    if (avatar.isNull()) {
+        // Плейсхолдер, если аватарка не загружена
+        avatar = QPixmap(40, 40);
+        avatar.fill(Qt::transparent);
+        QPainter p(&avatar);
+        p.setBrush(QColor(54, 57, 63));
+        p.setPen(Qt::NoPen);
+        p.drawEllipse(0, 0, 40, 40);
+        p.setPen(QColor(185, 187, 190));
+        p.drawText(avatar.rect(), Qt::AlignCenter, "?");
+    }
+
+    bool isAdmin = userAdmins.value(sender, false);
+
+    // Вставляем новое сообщение ПЕРЕД растяжкой (messagesLayout->count() - 1)
+    MessageWidget *widget = new MessageWidget(sender, text, avatar, isAdmin);
+    messagesLayout->insertWidget(messagesLayout->count() - 1, widget);
+
+    // Скролл вниз
+    QScrollBar* bar = messagesArea->verticalScrollBar();
+    bar->setValue(bar->maximum());
+}
+
 void ChatWindow::onSendClicked() {
     QString text = messageInput->text();
     if (!text.isEmpty() && !currentRecipient.isEmpty()) {
         client->sendMessage(text, currentRecipient);
-        QString displayString = QString("<b>[Я]:</b> %1").arg(text); 
-        chatHistories[currentRecipient].append(displayString);
-        messagesDisplay->append(displayString);
+        // Показываем сообщение у себя сразу (без ожидания ответа от сервера)
+        addMessageToChat(client->getMyLogin(), text);
         messageInput->clear(); 
     }
 }
 
 void ChatWindow::onMessageReceived(const QString& sender, const QString& text) {
-    QString displayString = QString("<b>[%1]:</b> %2").arg(sender, text);
-    chatHistories[sender].append(displayString);
     if (currentRecipient == sender) {
-        messagesDisplay->append(displayString);
+        addMessageToChat(sender, text);
+    }
+}
+
+void ChatWindow::onHistoryReceived(const QString& chatWith, const QJsonArray& messages) {
+    if (chatWith == currentRecipient) {
+        clearChatMessages();
+        for (const QJsonValue& val : messages) {
+            QJsonObject msgObj = val.toObject();
+            QString sender = msgObj["sender"].toString();
+            QString text = msgObj["text"].toString();
+            addMessageToChat(sender, text);
+        }
     }
 }
 
@@ -189,28 +287,48 @@ void ChatWindow::onChatSelected(QListWidgetItem *item) {
     currentRecipient = item->data(Qt::UserRole).toString();
     chatHeader->setText("<b>Чат с:</b> " + currentRecipient); 
     mainArea->setCurrentIndex(1);
-    messagesDisplay->clear(); 
+    clearChatMessages();
     client->requestHistory(currentRecipient);
 }
 
-void ChatWindow::onHistoryReceived(const QString& chatWith, const QJsonArray& messages) {
-    if (chatWith == currentRecipient) {
-        messagesDisplay->clear(); 
-        for (const QJsonValue& val : messages) {
-            QJsonObject msgObj = val.toObject();
-            QString sender = msgObj["sender"].toString();
-            QString text = msgObj["text"].toString();
-            QString displayString;
-            if (sender == client->getMyLogin()) {
-                displayString = QString("<b>[Я]:</b> %1").arg(text);
-            } else {
-                displayString = QString("<b>[%1]:</b> %2").arg(sender, text);
-            }
-            messagesDisplay->append(displayString);
+// ================= РАБОТА СО СПИСКОМ ПОЛЬЗОВАТЕЛЕЙ И АВАТАРКАМИ =================
+
+void ChatWindow::onUserListReceived(const QJsonArray& users) {
+    chatsList->clear(); 
+    userAvatars.clear();
+    userAdmins.clear();
+
+    for (const QJsonValue& val : users) {
+        QJsonObject userObj = val.toObject();
+        
+        QString login = userObj["login"].toString();
+        QString displayName = userObj["display_name"].toString();
+        if (displayName.isEmpty()) displayName = login; 
+        bool isOnline = userObj["online"].toBool();
+        bool isAdmin = userObj["is_admin"].toBool();
+        QString avatarBase64 = userObj["avatar_base64"].toString();
+
+        // Сохраняем в кеш
+        userAdmins[login] = isAdmin;
+
+        QListWidgetItem *item = new QListWidgetItem(chatsList);
+        item->setText(displayName);
+        item->setData(Qt::UserRole, login);
+
+        QPixmap avatarPixmap = createCircularAvatarFromBase64(avatarBase64, 36, isOnline);
+        userAvatars[login] = avatarPixmap; // Сохраняем в кеш
+
+        if (!avatarPixmap.isNull()) {
+            QIcon icon(avatarPixmap);
+            icon.addPixmap(avatarPixmap, QIcon::Selected);
+            icon.addPixmap(avatarPixmap, QIcon::Active);
+            item->setIcon(icon);
         }
+        item->setForeground(QBrush(QColor("#dbdee1")));
     }
 }
 
+// ================= ОСТАЛЬНЫЕ МЕТОДЫ (АВАТАРКИ) БЕЗ ИЗМЕНЕНИЙ =================
 QPixmap ChatWindow::createCircularAvatarFromBase64(const QString& base64, int size, bool isOnline) {
     QPixmap source;
     if (!base64.isEmpty()) {
@@ -220,7 +338,6 @@ QPixmap ChatWindow::createCircularAvatarFromBase64(const QString& base64, int si
 
     if (source.isNull()) {
         source.load(":/images/avatar_placeholder.png"); 
-        
         if (source.isNull()) {
             QPixmap fallback(size, size);
             fallback.fill(Qt::transparent);
@@ -261,31 +378,4 @@ QPixmap ChatWindow::createCircularAvatarFromBase64(const QString& base64, int si
     }
 
     return final;
-}
-
-void ChatWindow::onUserListReceived(const QJsonArray& users) {
-    chatsList->clear(); 
-
-    for (const QJsonValue& val : users) {
-        QJsonObject userObj = val.toObject();
-        
-        QString login = userObj["login"].toString();
-        QString displayName = userObj["display_name"].toString();
-        if (displayName.isEmpty()) displayName = login; 
-        bool isOnline = userObj["online"].toBool();
-        QString avatarBase64 = userObj["avatar_base64"].toString();
-
-        QListWidgetItem *item = new QListWidgetItem(chatsList);
-        item->setText(displayName);
-        item->setData(Qt::UserRole, login);
-
-        QPixmap avatarPixmap = createCircularAvatarFromBase64(avatarBase64, 36, isOnline);
-        if (!avatarPixmap.isNull()) {
-            QIcon icon(avatarPixmap);
-            icon.addPixmap(avatarPixmap, QIcon::Selected);
-            icon.addPixmap(avatarPixmap, QIcon::Active);
-            item->setIcon(icon);
-        }
-        item->setForeground(QBrush(QColor("#dbdee1")));
-    }
 }

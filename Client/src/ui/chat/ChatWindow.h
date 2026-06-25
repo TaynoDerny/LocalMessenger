@@ -1,7 +1,7 @@
 #pragma once
 #include <QWidget>
 #include <QListWidget>
-#include <QTextEdit>
+#include <QScrollArea>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QLabel>
@@ -28,9 +28,7 @@ public:
 
 private:
     MessengerClient *client;
-
-    // Убрали serversList и createGroupButton, они больше не нужны
-    QPushButton *adminPanelBtn; // Оставили кнопку админа, перенесем ее в шапку
+    QPushButton *adminPanelBtn;
     AdminPanelWidget *adminWidget; 
 
     QListWidget *chatsList;
@@ -39,18 +37,28 @@ private:
     QWidget *chatWidget; 
 
     QLabel *chatHeader;
-    QTextEdit *messagesDisplay;
-    QLineEdit *messageInput;
-    QPushButton *sendButton;
+    
+    // ЗАМЕНА: вместо QTextEdit используем прокручиваемую область для красивого списка сообщений
+    QScrollArea *messagesArea;
+    QWidget *messagesContainer;
+    QVBoxLayout *messagesLayout;
+    
+    QLineEdit *messageInput; // Кнопку отправки убрали!
 
     QString currentRecipient; 
-    QHash<QString, QStringList> chatHistories;
+    
+    // Кеш для аватарок и прав пользователей (чтобы не пересоздавать каждый раз)
+    QHash<QString, QPixmap> userAvatars;
+    QHash<QString, bool> userAdmins;
 
-    // Обновленная функция с параметром isOnline
     QPixmap createCircularAvatarFromBase64(const QString& base64, int size, bool isOnline);
 
+    // Новая функция для добавления сообщения в чат
+    void addMessageToChat(const QString& sender, const QString& text);
+    void clearChatMessages();
+
 private slots:
-    void onSendClicked();
+    void onSendClicked(); // Осталась для Enter и клика мыши (если вдруг)
     void onMessageReceived(const QString& sender, const QString& text); 
     void onUserListReceived(const QJsonArray& users); 
     void onChatSelected(QListWidgetItem *item);  
