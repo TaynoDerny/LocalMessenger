@@ -14,6 +14,7 @@
 #include <QIntValidator>
 #include <QFormLayout> 
 
+// Вспомогательная функция: создание круглой аватарки с белым фоном и серой обводкой
 static QPixmap createCircularAvatar(const QPixmap& source, int size) {
     if (source.isNull()) return QPixmap();
     QPixmap scaled = source.scaled(size, size, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
@@ -37,21 +38,18 @@ static QPixmap createCircularAvatar(const QPixmap& source, int size) {
     return final;
 }
 
-// ========== ОБНОВЛЕННЫЙ КОНСТРУКТОР ==========
+// Конструктор: инициализация интерфейса, загрузка настроек и настройка режима (обычный или только сеть)
 SettingsDialog::SettingsDialog(MessengerClient *client, QWidget *parent, bool onlyNetwork) 
     : QDialog(parent), client(client), onlyNetwork(onlyNetwork) {
     setupUI();
     applyStyles();
     loadNetworkSettings(); 
 
-    // ========== ЛОГИКА ДЛЯ ОКНА АВТОРИЗАЦИИ ==========
+    // Если диалог открыт только для настроек сети (из окна авторизации), скрываем боковое меню и переключаем вкладку
     if (onlyNetwork) {
-        // Убираем сайдбар
         sidebarList->hide();
         sidebarList->setFixedWidth(0);
-        // Сразу переключаем на вкладку Сети (индекс 2)
         pagesWidget->setCurrentIndex(2);
-        // Меняем заголовок
         setWindowTitle("Настройки сервера");
     } else {
         resize(750, 550);
@@ -59,6 +57,7 @@ SettingsDialog::SettingsDialog(MessengerClient *client, QWidget *parent, bool on
     }
 }
 
+// Настройка и компоновка всех элементов интерфейса диалога
 void SettingsDialog::setupUI() {
     QHBoxLayout *mainLayout = new QHBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
@@ -73,7 +72,7 @@ void SettingsDialog::setupUI() {
 
     pagesWidget = new QStackedWidget(this);
 
-    // --- СТРАНИЦА: Профиль ---
+    // Страница "Профиль" с аватаркой и полями для редактирования
     QWidget* profilePage = new QWidget();
     QVBoxLayout* profileLayout = new QVBoxLayout(profilePage);
     profileLayout->setContentsMargins(40, 40, 40, 40);
@@ -136,7 +135,7 @@ void SettingsDialog::setupUI() {
     profileLayout->addLayout(mainRowLayout);
     profileLayout->addStretch();
 
-    // --- Остальные страницы ---
+    // Страница "Внешний вид" (заглушка)
     QWidget* appearancePage = new QWidget();
     QVBoxLayout* appearanceLayout = new QVBoxLayout(appearancePage);
     appearanceLayout->setContentsMargins(40, 40, 40, 40);
@@ -145,6 +144,7 @@ void SettingsDialog::setupUI() {
     appearanceLayout->addWidget(appearanceLabel);
     appearanceLayout->addStretch();
 
+    // Страница "Сеть" с отображением локального IP и настройками сервера
     QWidget* networkPage = new QWidget();
     QVBoxLayout* networkLayout = new QVBoxLayout(networkPage);
     networkLayout->setContentsMargins(40, 40, 40, 40);
@@ -214,6 +214,7 @@ void SettingsDialog::setupUI() {
     networkLayout->addLayout(networkBtnLayout);
     networkLayout->addStretch();
 
+    // Страница "О приложении"
     QWidget* aboutPage = new QWidget();
     QVBoxLayout* aboutLayout = new QVBoxLayout(aboutPage);
     aboutLayout->setContentsMargins(40, 40, 40, 40);
@@ -243,6 +244,7 @@ void SettingsDialog::setupUI() {
     loadProfileData(); 
 }
 
+// Применение глобальных стилей к диалогу и его элементам
 void SettingsDialog::applyStyles() {
     this->setStyleSheet(
         "QDialog { background-color: #36393f; }"
@@ -254,6 +256,7 @@ void SettingsDialog::applyStyles() {
     );
 }
 
+// Загрузка данных профиля из клиента (аватарка, имя, фамилия и т.д.)
 void SettingsDialog::loadProfileData() {
     QString myBase64 = client->getMyAvatarBase64();
     if (!myBase64.isEmpty()) {
@@ -274,6 +277,7 @@ void SettingsDialog::loadProfileData() {
     bioEdit->setPlainText(client->getMyBio());
 }
 
+// Установка аватарки-заглушки, если пользователь не загрузил свою
 void SettingsDialog::loadDefaultAvatarFallback() {
     QPixmap defaultImage(100, 100);
     defaultImage.fill(Qt::transparent);
@@ -293,6 +297,7 @@ void SettingsDialog::loadDefaultAvatarFallback() {
     avatarLabel->setPixmap(defaultImage);
 }
 
+// Загрузка сохранённых настроек сети (IP и порт)
 void SettingsDialog::loadNetworkSettings() {
     QSettings settings;
     QString savedIp = settings.value("network/server_ip", "127.0.0.1").toString();
@@ -301,6 +306,7 @@ void SettingsDialog::loadNetworkSettings() {
     portEdit->setText(QString::number(savedPort));
 }
 
+// Обработка выбора новой аватарки через диалог файлов
 void SettingsDialog::onAvatarSelected() {
     QString fileName = QFileDialog::getOpenFileName(this, "Выберите аватар", "", "Изображения (*.png *.jpg *.jpeg *.bmp)");
     if (!fileName.isEmpty()) {
@@ -309,6 +315,7 @@ void SettingsDialog::onAvatarSelected() {
     }
 }
 
+// Сохранение изменений профиля: отправка всех полей на сервер
 void SettingsDialog::onSaveProfile() {
     QPixmap currentAvatar = avatarLabel->pixmap(Qt::ReturnByValue);
     QByteArray byteArray;
@@ -328,6 +335,7 @@ void SettingsDialog::onSaveProfile() {
     }
 }
 
+// Сохранение и применение новых сетевых настроек с переподключением к серверу
 void SettingsDialog::onSaveNetworkSettings() {
     QString ip = serverIpEdit->text().trimmed();
     QString portStr = portEdit->text().trimmed();
@@ -347,17 +355,18 @@ void SettingsDialog::onSaveNetworkSettings() {
     settings.setValue("network/server_port", port);
     if (client) {
         client->connectToServer(ip, port);
-        // ========== ИЗМЕНЕННЫЙ ТЕКСТ УВЕДОМЛЕНИЯ ==========
+        // Разные сообщения в зависимости от того, открыт диалог из авторизации или из чата
         if (onlyNetwork) {
             QMessageBox::information(this, "Успех", "Настройки сервера сохранены. Теперь вы можете войти в систему.");
         } else {
             QMessageBox::information(this, "Успех", "Настройки сети сохранены и применены!");
         }
-        // ==================================================
     } else {
         QMessageBox::warning(this, "Ошибка", "Клиент не найден. Перезапустите приложение, чтобы изменения вступили в силу.");
     }
 }
+
+// Сброс настроек сети до значений по умолчанию (localhost:8080)
 void SettingsDialog::onResetNetworkSettings() {
     serverIpEdit->setText("127.0.0.1");
     portEdit->setText("8080");

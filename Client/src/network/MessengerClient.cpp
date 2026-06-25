@@ -5,26 +5,25 @@
 #include <QDebug>
 #include <QCryptographicHash>
 
+// Конструктор: инициализация сокета и подключение его сигналов к слотам
 MessengerClient::MessengerClient(QObject *parent) : QObject(parent) {
     socket = new QTcpSocket(this);
-
     connect(socket, &QTcpSocket::connected, this, &MessengerClient::handleConnected);
     connect(socket, &QTcpSocket::readyRead, this, &MessengerClient::handleReadyRead);
     connect(socket, &QTcpSocket::errorOccurred, this, &MessengerClient::handleError);
 }
 
+// Подключение к серверу с принудительным сбросом, если уже было активное соединение
 void MessengerClient::connectToServer(const QString& ip, quint16 port) {
-    // ========== ИСПРАВЛЕНИЕ: Если уже коннектимся или подключены - принудительно рвем ==========
     if (socket->state() == QAbstractSocket::ConnectingState || 
         socket->state() == QAbstractSocket::ConnectedState) {
-        socket->abort(); // Мгновенно разрывает и сбрасывает сокет
+        socket->abort();
         qDebug() << "КЛИЕНТ: Принудительно разорвано старое соединение";
     }
-    // =============================================================================================
-
     socket->connectToHost(ip, port);
 }
 
+// Формирование JSON-запроса для авторизации (пароль хешируется SHA256)
 void MessengerClient::sendAuthData(const QString& login, const QString& password) {
     this->myLogin = login;
     QByteArray hashBytes = QCryptographicHash::hash(password.toUtf8(), QCryptographicHash::Sha256);
@@ -37,8 +36,10 @@ void MessengerClient::sendAuthData(const QString& login, const QString& password
     socket->write(QJsonDocument(json).toJson(QJsonDocument::Compact) + "\n");
 }
 
+// Формирование JSON-запроса для регистрации нового пользователя
 void MessengerClient::sendRegisterData(const QString& login, const QString& password) {
     QString hash = QString(QCryptographicHash::hash(password.toUtf8(), QCryptographicHash::Sha256).toHex());
+    
     QJsonObject json;
     json["type"] = "register";
     json["login"] = login;
@@ -46,6 +47,7 @@ void MessengerClient::sendRegisterData(const QString& login, const QString& pass
     socket->write(QJsonDocument(json).toJson(QJsonDocument::Compact) + "\n");
 }
 
+// Отправка всех данных профиля (имя, фамилия, должность, био, аватар) на сервер
 void MessengerClient::updateProfile(const QString& firstName, const QString& lastName, const QString& jobTitle, const QString& bio, const QString& avatarBase64) {
     if (socket->state() == QAbstractSocket::ConnectedState) {
         QJsonObject json;
@@ -60,10 +62,12 @@ void MessengerClient::updateProfile(const QString& firstName, const QString& las
     }
 }
 
+// Слот успешного подключения к серверу
 void MessengerClient::handleConnected() {
     qDebug() << "КЛИЕНТ: Успешно подключено к серверу!";
 }
 
+// Слот обработки входящих JSON-пакетов от сервера
 void MessengerClient::handleReadyRead() {
     while (socket->canReadLine()) {
         QByteArray data = socket->readLine();
@@ -73,6 +77,7 @@ void MessengerClient::handleReadyRead() {
             QString type = doc.object()["type"].toString();
 
             if (type == "auth_success") {
+                // Авторизация успешна: запоминаем права админа и данные своего профиля
                 adminStatus = doc.object()["is_admin"].toBool();
                 if (doc.object().contains("my_info")) {
                     QJsonObject myInfo = doc.object()["my_info"].toObject();
@@ -96,20 +101,24 @@ void MessengerClient::handleReadyRead() {
                 qDebug() << "КЛИЕНТ: Ошибка регистрации!";
             }
             else if (type == "message") {
+                // Пришло новое сообщение от другого пользователя
                 QString sender = doc.object()["sender"].toString();
                 QString text = doc.object()["text"].toString();
                 emit messageReceived(sender, text);
             }
             else if (type == "user_list") {
+                // Обновлённый список пользователей (для левой панели)
                 QJsonArray usersArray = doc.object()["users"].toArray();
                 emit userListReceived(usersArray);
             }
             else if (type == "history") {
+                // История переписки с выбранным пользователем
                 QString withUser = doc.object()["with"].toString();
                 QJsonArray messages = doc.object()["messages"].toArray();
                 emit historyReceived(withUser, messages);
             }
             else if (type == "admin_data_result") {
+                // Список всех пользователей для админ-панели
                 QJsonArray users = doc.object()["users"].toArray();
                 emit adminDataReceived(users);
             }
@@ -119,10 +128,12 @@ void MessengerClient::handleReadyRead() {
     }
 }
 
+// Слот обработки ошибок сокета (например, обрыв соединения)
 void MessengerClient::handleError(QAbstractSocket::SocketError socketError) {
     qDebug() << "КЛИЕНТ ОШИБКА:" << socket->errorString();
 }
 
+// Формирование JSON и отправка сообщения другому пользователю
 void MessengerClient::sendMessage(const QString& text, const QString& recipient) {
     if (socket->state() == QAbstractSocket::ConnectedState) {
         QJsonObject json;
@@ -133,6 +144,7 @@ void MessengerClient::sendMessage(const QString& text, const QString& recipient)
     }
 }
 
+// Запрос истории сообщений с указанным пользователем
 void MessengerClient::requestHistory(const QString& chatWith) {
     QJsonObject json;
     json["type"] = "get_history";
@@ -140,9 +152,11 @@ void MessengerClient::requestHistory(const QString& chatWith) {
     socket->write(QJsonDocument(json).toJson(QJsonDocument::Compact) + "\n");
 }
 
+// Админ-функция: создание нового пользователя
 void MessengerClient::createAccount(const QString& login, const QString& password, bool isAdmin) {
     QByteArray hashBytes = QCryptographicHash::hash(password.toUtf8(), QCryptographicHash::Sha256);
     QString hash = QString(hashBytes.toHex());
+    
     QJsonObject json;
     json["type"] = "create_user";
     json["login"] = login;
@@ -151,14 +165,17 @@ void MessengerClient::createAccount(const QString& login, const QString& passwor
     socket->write(QJsonDocument(json).toJson(QJsonDocument::Compact) + "\n");
 }
 
+// Админ-функция: запрос данных всех пользователей для админ-панели
 void MessengerClient::requestAdminData() {
     QJsonObject json;
     json["type"] = "get_admin_data";
     socket->write(QJsonDocument(json).toJson(QJsonDocument::Compact) + "\n");
 }
 
+// Админ-функция: сброс пароля другому пользователю
 void MessengerClient::sendResetPassword(const QString& targetLogin, const QString& newPassword) {
     QString hash = QString(QCryptographicHash::hash(newPassword.toUtf8(), QCryptographicHash::Sha256).toHex());
+    
     QJsonObject json;
     json["type"] = "reset_password";
     json["target_user"] = targetLogin;
@@ -166,6 +183,7 @@ void MessengerClient::sendResetPassword(const QString& targetLogin, const QStrin
     socket->write(QJsonDocument(json).toJson(QJsonDocument::Compact) + "\n");
 }
 
+// Админ-функция: полная очистка истории сообщений другого пользователя
 void MessengerClient::sendWipeUser(const QString& targetLogin) {
     QJsonObject json;
     json["type"] = "wipe_user";

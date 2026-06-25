@@ -5,11 +5,10 @@
 #include <QStatusBar> 
 #include <QLabel>     
 
-// ==========================================================
-// ВНУТРЕННИЙ ВИДЖЕТ ОДНОГО СООБЩЕНИЯ
-// ==========================================================
+// Внутренний виджет для отображения одного сообщения с аватаркой, именем и временем
 class MessageWidget : public QWidget {
 public:
+    // Конструктор виджета сообщения: настройка отступов, аватарки, имени, времени и текста
     MessageWidget(const QString& sender, const QString& text, const QPixmap& avatar, bool isAdmin, QWidget *parent = nullptr)
         : QWidget(parent) {
         
@@ -56,9 +55,7 @@ public:
     }
 };
 
-// ==========================================================
-// ОСНОВНОЙ КЛАСС CHATWINDOW
-// ==========================================================
+// Основной класс окна чата (наследуется от QMainWindow для использования QStatusBar)
 ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     : QMainWindow(parent), client(client) { 
 
@@ -66,11 +63,13 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     setWindowTitle("Мессенджер");
     resize(1280, 720);
 
+    // Создание центрального виджета и вертикального слоя для всего окна
     QWidget *centralWidget = new QWidget(this);
     QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
     mainLayout->setContentsMargins(0, 0, 0, 0); 
     mainLayout->setSpacing(0);
 
+    // Верхняя панель высотой 48px с кнопками админа и настроек
     QWidget *topBarContainer = new QWidget(this);
     topBarContainer->setFixedHeight(48);
     QHBoxLayout *topBarLayout = new QHBoxLayout(topBarContainer);
@@ -88,6 +87,7 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     QHBoxLayout *rightTopBarLayout = new QHBoxLayout(rightTopBar);
     rightTopBarLayout->setContentsMargins(15, 0, 15, 0);
 
+    // Кнопка перехода в админ-панель (видна только администратору)
     adminPanelBtn = new QPushButton("🛡️", this); 
     adminPanelBtn->setFixedSize(30, 30);
     adminPanelBtn->setObjectName("btnAdminPanel");
@@ -98,6 +98,7 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
         client->requestAdminData();
     });
 
+    // Кнопка открытия настроек (с иконкой-шестерёнкой)
     QPushButton *settingsBtn = new QPushButton(this);
     settingsBtn->setIcon(QIcon(":/images/settings_icon.png"));
     settingsBtn->setIconSize(QSize(24, 24));
@@ -121,11 +122,13 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     topBarLayout->addWidget(rightTopBar);
     mainLayout->addWidget(topBarContainer);
 
+    // Контейнер с двумя колонками: список чатов (слева) и область чата (справа)
     QWidget *contentContainer = new QWidget(this);
     QHBoxLayout *contentLayout = new QHBoxLayout(contentContainer);
     contentLayout->setContentsMargins(0, 0, 0, 0); 
     contentLayout->setSpacing(0);
 
+    // Левая колонка со списком пользователей
     QWidget *friendsContainer = new QWidget(this);
     friendsContainer->setFixedWidth(280); 
     friendsContainer->setObjectName("friendsContainer");
@@ -142,6 +145,7 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     friendsLayout->addWidget(chatsList);
     contentLayout->addWidget(friendsContainer);
 
+    // Правая колонка с контентом (область чата, админ-панель или пустой экран)
     QWidget *rightContainer = new QWidget(this);
     rightContainer->setObjectName("rightContainer");
     QVBoxLayout *rightLayout = new QVBoxLayout(rightContainer);
@@ -150,6 +154,7 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
 
     mainArea = new QStackedWidget(this);
 
+    // Экран приветствия (отображается, пока чат не выбран)
     homeWidget = new QWidget(this);
     homeWidget->setObjectName("homeWidget");
     QVBoxLayout *homeLayout = new QVBoxLayout(homeWidget);
@@ -159,6 +164,7 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     homeLayout->addWidget(welcomeLabel);
     mainArea->addWidget(homeWidget);
 
+    // Окно самого чата (с заголовком, скроллом сообщений и полем ввода)
     chatWidget = new QWidget(this);
     chatWidget->setObjectName("chatWidget");
     QVBoxLayout *chatLayout = new QVBoxLayout(chatWidget);
@@ -174,6 +180,7 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     messagesLayout->setSpacing(0);
     messagesLayout->addStretch(); 
 
+    // Область прокрутки для сообщений (заменяет старый QTextEdit)
     messagesArea = new QScrollArea();
     messagesArea->setWidget(messagesContainer);
     messagesArea->setWidgetResizable(true);
@@ -182,6 +189,7 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     
     chatLayout->addWidget(messagesArea);
 
+    // Поле ввода сообщения (отправка по Enter)
     messageInput = new QLineEdit(this);
     messageInput->setPlaceholderText("Напишите сообщение...");
     messageInput->setObjectName("messageInput");
@@ -191,6 +199,7 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     chatLayout->addWidget(messageInput);
     mainArea->addWidget(chatWidget);
 
+    // Панель администратора (отображается отдельной страницей)
     adminWidget = new AdminPanelWidget(client, this);
     mainArea->addWidget(adminWidget);
 
@@ -201,6 +210,7 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
 
     this->setCentralWidget(centralWidget);
 
+    // Строка состояния (статус бар) внизу окна
     QStatusBar *statusBar = this->statusBar();
     QLabel *statusLabel = new QLabel("⚡ Статус: Подключено к серверу", this);
     statusBar->addWidget(statusLabel);
@@ -208,6 +218,7 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
 
     mainArea->setCurrentIndex(0);
 
+    // Привязка сигналов и слотов
     connect(messageInput, &QLineEdit::returnPressed, this, &ChatWindow::onSendClicked);
     connect(client, &MessengerClient::messageReceived, this, &ChatWindow::onMessageReceived);
     connect(client, &MessengerClient::userListReceived, this, &ChatWindow::onUserListReceived);
@@ -216,6 +227,7 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     connect(client, &MessengerClient::adminDataReceived, adminWidget, &AdminPanelWidget::updateTable);
 }
 
+// Очистка списка сообщений (удаление виджетов из контейнера)
 void ChatWindow::clearChatMessages() {
     while (QLayoutItem* item = messagesLayout->takeAt(0)) {
         if (item->widget()) {
@@ -226,6 +238,7 @@ void ChatWindow::clearChatMessages() {
     messagesLayout->addStretch();
 }
 
+// Добавление сообщения в чат с отображением имени, аватарки и времени
 void ChatWindow::addMessageToChat(const QString& senderLogin, const QString& text) {
     QString displaySender = userDisplayNames.value(senderLogin, senderLogin);
     int nl = displaySender.indexOf('\n');
@@ -252,6 +265,7 @@ void ChatWindow::addMessageToChat(const QString& senderLogin, const QString& tex
     bar->setValue(bar->maximum());
 }
 
+// Отправка сообщения по нажатию Enter
 void ChatWindow::onSendClicked() {
     QString text = messageInput->text();
     if (!text.isEmpty() && !currentRecipient.isEmpty()) {
@@ -261,12 +275,14 @@ void ChatWindow::onSendClicked() {
     }
 }
 
+// Обработка входящего сообщения от сервера
 void ChatWindow::onMessageReceived(const QString& sender, const QString& text) {
     if (currentRecipient == sender) {
         addMessageToChat(sender, text);
     }
 }
 
+// Загрузка истории чата при выборе собеседника
 void ChatWindow::onHistoryReceived(const QString& chatWith, const QJsonArray& messages) {
     if (chatWith == currentRecipient) {
         clearChatMessages();
@@ -279,9 +295,10 @@ void ChatWindow::onHistoryReceived(const QString& chatWith, const QJsonArray& me
     }
 }
 
+// Обработка клика по пользователю в левом списке: открытие чата и запрос истории
 void ChatWindow::onChatSelected(QListWidgetItem *item) {
     currentRecipient = item->data(Qt::UserRole).toString();
-    QString fullName = item->data(Qt::UserRole + 1).toString(); // Берем чисто Имя+Фамилию
+    QString fullName = item->data(Qt::UserRole + 1).toString();
     
     chatHeader->setText("<b>Чат с:</b> " + fullName); 
     mainArea->setCurrentIndex(1);
@@ -289,7 +306,7 @@ void ChatWindow::onChatSelected(QListWidgetItem *item) {
     client->requestHistory(currentRecipient);
 }
 
-// ================= ОБНОВЛЕННЫЙ МЕТОД С КАСТОМНЫМ ВИДЖЕТОМ =================
+// Обновление списка пользователей с созданием кастомных виджетов (Имя + Должность)
 void ChatWindow::onUserListReceived(const QJsonArray& users) {
     chatsList->clear(); 
     userAvatars.clear();
@@ -309,18 +326,16 @@ void ChatWindow::onUserListReceived(const QJsonArray& users) {
 
         userAdmins[login] = isAdmin;
 
-        // ========== ФОРМИРУЕМ ИМЯ И ДОЛЖНОСТЬ ==========
-        QString fullName = login; // По умолчанию логин
+        QString fullName = login;
         QString displayNameStr = login;
         if (!firstName.isEmpty() && !lastName.isEmpty()) {
             fullName = firstName + " " + lastName;
             displayNameStr = fullName;
             if (!jobTitle.isEmpty()) {
-                displayNameStr += "\n" + jobTitle; // Для кеша
+                displayNameStr += "\n" + jobTitle;
             }
         }
         userDisplayNames[login] = displayNameStr; 
-        // ===============================================
 
         QPixmap avatarPixmapClean = createCircularAvatarFromBase64(avatarBase64, 36, false);
         userAvatars[login] = avatarPixmapClean;
@@ -330,36 +345,28 @@ void ChatWindow::onUserListReceived(const QJsonArray& users) {
         }
 
         QListWidgetItem *item = new QListWidgetItem(chatsList);
-        // Сохраняем скрытые данные
         item->setData(Qt::UserRole, login);
-        item->setData(Qt::UserRole + 1, fullName); // Чистое Имя+Фамилия для заголовка
+        item->setData(Qt::UserRole + 1, fullName);
 
-        // ========== СОЗДАЁМ КАСТОМНЫЙ ВИДЖЕТ ==========
         QWidget *widget = new QWidget();
         QHBoxLayout *layout = new QHBoxLayout(widget);
         layout->setContentsMargins(10, 6, 10, 6);
         layout->setSpacing(15);
 
-        // Аватарка
         QLabel *avatarWidget = new QLabel();
         avatarWidget->setPixmap(createCircularAvatarFromBase64(avatarBase64, 36, isOnline));
         layout->addWidget(avatarWidget);
 
-        // Текстовый блок
         QVBoxLayout *textLayout = new QVBoxLayout();
         textLayout->setSpacing(2);
 
-        // Имя Фамилия
         QLabel *nameLabel = new QLabel(fullName);
         nameLabel->setStyleSheet("color: #dbdee1; font-size: 14px; font-weight: bold;");
 
-        // Должность
         QLabel *jobLabel = new QLabel(jobTitle);
-        // ========== СТИЛЬ ДЛЯ ДОЛЖНОСТИ (ШРИФТ ЧУТЬ МЕНЬШЕ) ==========
         jobLabel->setStyleSheet("color: #b9bbbe; font-size: 12px;");
-        // ================================================================
         if (jobTitle.isEmpty()) {
-            jobLabel->hide(); // Если нет должности, прячем метку
+            jobLabel->hide();
         }
 
         textLayout->addWidget(nameLabel);
@@ -367,13 +374,12 @@ void ChatWindow::onUserListReceived(const QJsonArray& users) {
         layout->addLayout(textLayout);
         layout->addStretch();
 
-        // Вставляем кастомный виджет в список
         chatsList->setItemWidget(item, widget);
         item->setSizeHint(widget->sizeHint());
-        // ==========================================================
     }
 }
 
+// Создание круглой аватарки из Base64 (опционально добавляется статус онлайн)
 QPixmap ChatWindow::createCircularAvatarFromBase64(const QString& base64, int size, bool isOnline) {
     QPixmap source;
     if (!base64.isEmpty()) {

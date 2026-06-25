@@ -1,4 +1,4 @@
-/* ================= ОБЩИЕ СТИЛИ ================= */
+/* Основные стили для всех виджетов */
 QWidget {
     background-color: #1A1A1E;
     color: #DBDEE1;
@@ -6,12 +6,13 @@ QWidget {
     font-size: 14px;
 }
 
-/* ================= ЛЕВАЯ ПАНЕЛЬ ================= */
+/* Стили левой боковой панели */
 QListWidget#serversList {
     background-color: #1E1F22;
     border: none;
 }
 
+/* Кнопки создания группы и открытия админ-панели */
 QPushButton#btnCreateGroup {
     border-radius: 25px; 
     background-color: #36393f; 
@@ -36,7 +37,7 @@ QPushButton#btnAdminPanel:hover {
     background-color: #7289da;
 }
 
-/* ================= СРЕДНЯЯ ПАНЕЛЬ ================= */
+/* Стили средней панели (список друзей и чатов) */
 QWidget#friendsContainer {
     background-color: #2B2D31; 
 }
@@ -47,6 +48,7 @@ QListWidget#chatsList {
     font-size: 14px;
 }
 
+/* Состояния элементов списка чатов (наведение, выбор) */
 QListWidget#chatsList::item {
     padding: 2px 10px;
     min-height: 40px;
@@ -65,7 +67,7 @@ QListWidget#chatsList::item:selected:hover {
     color: white;
 }
 
-/* ================= ПРАВАЯ ПАНЕЛЬ (ОКНО ЧАТА) ================= */
+/* Стили правой панели (верхняя панель чата и кнопка настроек) */
 QWidget#topBar {
     background-color: #1A1A1E; 
     border-bottom: 1px solid #3D3D3D;
@@ -81,7 +83,7 @@ QPushButton#btnSettings:hover {
     color: white;
 }
 
-/* ================= СТИЛИ ЧАТА (БЛОКИ СООБЩЕНИЙ) ================= */
+/* Стили области прокрутки и блоков сообщений чата */
 QScrollArea#messagesArea {
     background-color: #1A1A1E;
     border: none;
@@ -93,7 +95,7 @@ QWidget#messageWidget {
     padding: 4px 0px;
 }
 QWidget#messageWidget:hover {
-    background-color: #2B2D31; /* Цвет выделения при наведении */
+    background-color: #2B2D31; /* Подсветка при наведении */
 }
 
 QLabel#msgAvatarLabel {
@@ -112,7 +114,7 @@ QLabel#msgTextLabel {
     line-height: 1.4;
 }
 
-/* ================= ПОЛЕ ВВОДА ================= */
+/* Стили поля ввода сообщения */
 QLineEdit#messageInput {
     background-color: #222327;
     border-radius: 8px;
@@ -122,12 +124,12 @@ QLineEdit#messageInput {
     font-size: 14px;
 }
 
-/* Оверлей настроек */
+/* Полупрозрачный оверлей, перекрывающий окно при открытии настроек */
 QWidget#overlayWidget {
     background-color: rgba(0, 0, 0, 170);
 }
 
-/* ================= СТИЛИ ДЛЯ НАСТРОЕК (SettingsDialog) ================= */
+/* Стили для диалогового окна настроек (SettingsDialog) */
 QLabel#avatarLabel {
     background-color: transparent;
     border: none;
@@ -148,13 +150,13 @@ QPushButton#saveProfileBtn:disabled {
     color: #b9bbbe;
 }
 
-/* ================= ЛЕВАЯ ЧАСТЬ ВЕРХНЕЙ ПАНЕЛИ ================= */
+/* Стили левой части верхней панели (блок над списком чатов) */
 QWidget#leftTopBar {
     background-color: #121214;
     border-bottom: 1px solid #3D3D3D;
 }
 
-/* ================= ЗАГОЛОВОК ЛИЧНЫХ СООБЩЕНИЙ ================= */
+/* Стили заголовка «Личные сообщения» над списком чатов */
 QLabel#dmLabel {
     color: #b9bbbe;
     font-size: 12px;

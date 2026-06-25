@@ -1,16 +1,18 @@
 #include "AdminPanelWidget.h"
 #include "../../network/MessengerClient.h" 
-#include "CreateUserDialog.h" // <-- Добавили диалог создания
+#include "CreateUserDialog.h"
 
+// Конструктор: инициализация клиента и настройка интерфейса
 AdminPanelWidget::AdminPanelWidget(MessengerClient* client, QWidget *parent)
     : QWidget(parent), client(client) {
     setupUI();
 }
 
+// Настройка и компоновка всех элементов интерфейса админ-панели
 void AdminPanelWidget::setupUI() {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
 
-    // ВЕРХНЯЯ ПАНЕЛЬ: Поиск, фильтры, и кнопки
+    // Верхняя панель инструментов: поиск, фильтры и кнопки действий
     QHBoxLayout* topLayout = new QHBoxLayout();
     
     searchEdit = new QLineEdit(this);
@@ -26,7 +28,6 @@ void AdminPanelWidget::setupUI() {
     refreshBtn = new QPushButton("Обновить", this);
     connect(refreshBtn, &QPushButton::clicked, client, &MessengerClient::requestAdminData);
 
-    // ==== НОВАЯ КНОПКА ЗДЕСЬ ====
     createUserBtn = new QPushButton("Создать пользователя", this);
     connect(createUserBtn, &QPushButton::clicked, this, [this]() {
         CreateUserDialog dialog(this);
@@ -41,9 +42,9 @@ void AdminPanelWidget::setupUI() {
     topLayout->addWidget(searchEdit);
     topLayout->addWidget(filterCombo);
     topLayout->addWidget(refreshBtn);
-    topLayout->addWidget(createUserBtn); // Добавляем в раскладку
+    topLayout->addWidget(createUserBtn);
 
-    // ТАБЛИЦА ПОЛЬЗОВАТЕЛЕЙ
+    // Таблица для отображения списка пользователей
     usersTable = new QTableWidget(0, 4, this);
     usersTable->setHorizontalHeaderLabels({"Логин", "Статус", "Роль", "IP Адрес"});
     usersTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -51,21 +52,21 @@ void AdminPanelWidget::setupUI() {
     usersTable->setSelectionMode(QAbstractItemView::SingleSelection);
     usersTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
-    // ==== ДОБАВЛЯЕМ КОНТЕКСТНОЕ МЕНЮ ====
+    // Включение контекстного меню (правая кнопка мыши) для таблицы
     usersTable->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(usersTable, &QTableWidget::customContextMenuRequested, this, &AdminPanelWidget::showContextMenu);
 
-    // СБОРКА ИНТЕРФЕЙСА
     mainLayout->addLayout(topLayout);
     mainLayout->addWidget(usersTable);
-    // Нижняя панель с кнопками (reset / wipe) убрана полностью!
 }
 
+// Обновление данных таблицы при получении нового списка пользователей от сервера
 void AdminPanelWidget::updateTable(const QJsonArray& users) {
     allUsersData = users; 
     applyFilters();
 }
 
+// Фильтрация и отображение данных в таблице согласно поиску и выбранному фильтру
 void AdminPanelWidget::applyFilters() {
     usersTable->setRowCount(0); 
 
@@ -93,7 +94,7 @@ void AdminPanelWidget::applyFilters() {
     }
 }
 
-// ==== НОВЫЙ МЕТОД: ОБРАБОТКА ПРАВОГО КЛИКА ====
+// Отображение контекстного меню при клике правой кнопкой мыши по строке таблицы
 void AdminPanelWidget::showContextMenu(const QPoint& pos) {
     QModelIndex index = usersTable->indexAt(pos);
     if (!index.isValid()) return;
@@ -105,7 +106,7 @@ void AdminPanelWidget::showContextMenu(const QPoint& pos) {
     QAction *resetAction = contextMenu.addAction("Сбросить пароль");
     QAction *wipeAction = contextMenu.addAction("Обнулить (Удалить историю)");
 
-    // Логика для "Сбросить пароль"
+    // Действие по пункту "Сбросить пароль": запрос нового пароля и отправка на сервер
     connect(resetAction, &QAction::triggered, this, [this, login]() {
         bool ok;
         QString newPass = QInputDialog::getText(this, "Сброс пароля", 
@@ -117,7 +118,7 @@ void AdminPanelWidget::showContextMenu(const QPoint& pos) {
         }
     });
 
-    // Логика для "Обнулить (Удалить историю)"
+    // Действие по пункту "Обнулить": подтверждение и очистка истории сообщений
     connect(wipeAction, &QAction::triggered, this, [this, login]() {
         QMessageBox::StandardButton reply = QMessageBox::question(this, "Подтверждение", 
             "Вы уверены, что хотите обнулить пользователя " + login + "?\nВся его история переписки будет удалена!",

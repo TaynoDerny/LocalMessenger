@@ -3,11 +3,13 @@
 #include <QDebug>
 #include <QHostAddress>
 
+// Конструктор: инициализация сервера и обработка новых подключений
 MessengerServer::MessengerServer(QObject *parent) : QObject(parent) {
     server = new QTcpServer(this);
     connect(server, &QTcpServer::newConnection, this, &MessengerServer::handleNewConnection);
 }
 
+// Запуск сервера на порту 8080
 void MessengerServer::start() {
     if (!server->listen(QHostAddress::Any, 8080)) {
         qDebug() << "Ошибка запуска сервера:" << server->errorString();
@@ -16,27 +18,25 @@ void MessengerServer::start() {
     }
 }
 
+// Обработка нового подключения от клиента
 void MessengerServer::handleNewConnection() {
     QTcpSocket *clientSocket = server->nextPendingConnection();
     qDebug() << "СЕРВЕР: Новый клиент подключился!";
-    clients[clientSocket] = ""; // Пока не авторизован, логин пустой
+    clients[clientSocket] = "";
 
     connect(clientSocket, &QTcpSocket::readyRead, this, &MessengerServer::handleReadyRead);
     connect(clientSocket, &QTcpSocket::disconnected, this, &MessengerServer::handleDisconnect);
 }
 
-// ================== ИЗМЕНЕННАЯ РАССЫЛКА ==================
+// Формирование и отправка обновлённого списка пользователей всем авторизованным клиентам
 void MessengerServer::broadcastUserList() {
-    // 1. Берем всех юзеров из БД
     QJsonArray dbUsers = dbManager.getAllUsersInfo();
     QJsonArray finalUserList;
 
-    // 2. Пробегаемся по каждому и добавляем онлайн-статус
     for (const QJsonValue& val : dbUsers) {
         QJsonObject u = val.toObject();
         QString login = u["login"].toString();
         
-        // Проверяем, есть ли этот логин в списке подключенных клиентов
         bool isOnline = false;
         for (const QString& clientLogin : clients.values()) {
             if (clientLogin == login) {
@@ -54,7 +54,6 @@ void MessengerServer::broadcastUserList() {
 
     QByteArray responseData = QJsonDocument(response).toJson(QJsonDocument::Compact) + "\n";
 
-    // Рассылаем всем авторизованным
     for (QTcpSocket *client : clients.keys()) {
         if (!clients[client].isEmpty()) {
             client->write(responseData);
@@ -62,6 +61,7 @@ void MessengerServer::broadcastUserList() {
     }
 }
 
+// Обработка входящих JSON-пакетов от клиентов
 void MessengerServer::handleReadyRead() {
     QTcpSocket *clientSocket = qobject_cast<QTcpSocket*>(sender());
     if (!clientSocket) return;
@@ -73,6 +73,7 @@ void MessengerServer::handleReadyRead() {
         if (!doc.isNull() && doc.isObject()) {
             QJsonObject json = doc.object();
             
+            // Разбор типа запроса и вызов соответствующих методов
             if (json["type"].toString() == "auth") {
                 QString login = json["login"].toString();
                 QString password = json["password"].toString();
@@ -87,7 +88,6 @@ void MessengerServer::handleReadyRead() {
                     response["type"] = "auth_success";
                     response["is_admin"] = isUserAdmin;
                     
-                    // ОТПРАВЛЯЕМ КЛИЕНТУ ЕГО ДАННЫЕ ПРИ ВХОДЕ
                     QJsonObject myInfo = dbManager.getUserInfo(login);
                     response["my_info"] = myInfo;
 
@@ -208,8 +208,7 @@ void MessengerServer::handleReadyRead() {
                     }
                 }
             }
-            
-            // ========== НОВАЯ ЛОГИКА: СОХРАНЕНИЕ ПРОФИЛЯ ==========
+            // Обработка обновления профиля пользователя
             else if (json["type"].toString() == "update_profile") {
                 QString senderName = clients.value(clientSocket);
                 if (senderName.isEmpty()) return;
@@ -230,6 +229,7 @@ void MessengerServer::handleReadyRead() {
     }
 }
 
+// Обработка отключения клиента и обновление списка пользователей
 void MessengerServer::handleDisconnect() {
     QTcpSocket *clientSocket = qobject_cast<QTcpSocket*>(sender());
     if (!clientSocket) return;
@@ -239,6 +239,6 @@ void MessengerServer::handleDisconnect() {
     clientSocket->deleteLater();
 
     if (wasLoggedIn) {
-        broadcastUserList(); // Обновляем список, так как кто-то вышел
+        broadcastUserList();
     }
 }
