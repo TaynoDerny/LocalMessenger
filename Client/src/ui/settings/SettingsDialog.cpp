@@ -13,7 +13,6 @@
 #include <QRegularExpressionValidator>
 #include <QIntValidator>
 
-// Вспомогательная функция: обрезает картинку в гладкий круг и добавляет рамочку
 static QPixmap createCircularAvatar(const QPixmap& source, int size) {
     if (source.isNull()) {
         QPixmap empty(size, size);
@@ -36,10 +35,7 @@ static QPixmap createCircularAvatar(const QPixmap& source, int size) {
     path.addEllipse(0, 0, size, size);
     painter.setClipPath(path);
 
-    // =========== ИСПРАВЛЕНИЕ: БЕЛЫЙ ФОН ЗА АВАТАРКОЙ ===========
-    painter.fillPath(path, Qt::white); 
-    // ============================================================
-
+    painter.fillPath(path, Qt::white); // Белый фон за аватаркой
     painter.drawPixmap(0, 0, cropped);
 
     painter.setClipping(false);
@@ -65,7 +61,6 @@ void SettingsDialog::setupUI() {
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
 
-    // --- ЛЕВАЯ ПАНЕЛЬ (КАТЕГОРИИ) ---
     sidebarList = new QListWidget(this);
     sidebarList->setFixedWidth(220);
     sidebarList->addItem("Профиль");
@@ -73,7 +68,6 @@ void SettingsDialog::setupUI() {
     sidebarList->addItem("Сеть");
     sidebarList->addItem("О приложении");
 
-    // --- ПРАВАЯ ПАНЕЛЬ (КОНТЕНТ) ---
     pagesWidget = new QStackedWidget(this);
 
     // --- СТРАНИЦА: Профиль ---
@@ -101,16 +95,14 @@ void SettingsDialog::setupUI() {
     QVBoxLayout* rightCol = new QVBoxLayout();
     rightCol->setAlignment(Qt::AlignTop);
     
-    // =========== ИСПРАВЛЕНИЕ: ЗАМЕНА ПОЛЯ ВВОДА НА ТЕКСТ ===========
     QLabel* nickLabel = new QLabel("Отображаемое имя", this);
     nickLabel->setStyleSheet("color: #b9bbbe; font-size: 14px;");
     rightCol->addWidget(nickLabel);
 
-    // Берем имя из клиента и делаем его текстом
-    usernameLabel = new QLabel(client->getMyLogin(), this);
+    // Имя берем из клиента (пока просто текст)
+    QLabel* usernameLabel = new QLabel(client->getMyLogin(), this);
     usernameLabel->setStyleSheet("color: white; font-size: 18px; font-weight: bold; border: none; background: transparent;");
     rightCol->addWidget(usernameLabel);
-    // ===============================================================
 
     rightCol->addSpacing(20);
 
@@ -299,11 +291,10 @@ void SettingsDialog::onSaveProfile() {
     currentAvatar.save(&buffer, "PNG");
     QString avatarBase64 = QString::fromLatin1(byteArray.toBase64());
 
-    // =========== ИСПРАВЛЕНИЕ: Сохраняем только аватар ===========
     if (client) {
-        // Текущее имя не меняется, отправляем логин (сервер все равно обновит только аватар по этому запросу)
+        // Пока что передаем текущий логин вместо имени (на сервере обновится только аватарка)
         client->updateProfile(client->getMyLogin(), avatarBase64);
-        QMessageBox::information(this, "Успех", "Аватар успешно обновлен!");
+        QMessageBox::information(this, "Успех", "Аватар успешно отправлен и обновится у всех пользователей!");
     } else {
         QMessageBox::warning(this, "Ошибка", "Нет соединения с сервером.");
     }
