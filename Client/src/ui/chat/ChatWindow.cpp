@@ -14,7 +14,6 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
 
     // ================= 1. СРЕДНЯЯ ПАНЕЛЬ (стала левой) =================
     QWidget *friendsContainer = new QWidget(this);
-    // Чуть расширили (было 250), так как убрали левую панель
     friendsContainer->setFixedWidth(280); 
     friendsContainer->setObjectName("friendsContainer");
 
@@ -43,10 +42,9 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
 
     QHBoxLayout *topBarLayout = new QHBoxLayout(topBar);
     topBarLayout->setContentsMargins(15, 0, 15, 0);
-    topBarLayout->addStretch();
 
-    // ========= ПЕРЕМЕЩЕННАЯ КНОПКА АДМИН-ПАНЕЛИ =========
-    adminPanelBtn = new QPushButton("🛡️", this); // Или замените на "Админ", если нужен текст
+    // ========= ЛЕВАЯ ЧАСТЬ: КНОПКА АДМИН-ПАНЕЛИ =========
+    adminPanelBtn = new QPushButton("🛡️", this); 
     adminPanelBtn->setFixedSize(30, 30);
     adminPanelBtn->setObjectName("btnAdminPanel");
     if (!client->isAdmin()) adminPanelBtn->hide();
@@ -55,13 +53,16 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
         mainArea->setCurrentIndex(2);
         client->requestAdminData();
     });
-    topBarLayout->addWidget(adminPanelBtn); // Добавляем в шапку
+    topBarLayout->addWidget(adminPanelBtn); // <--- Добавляем слева
 
-    // ========= КНОПКА НАСТРОЕК =========
+    // ========= РАСПОРКА =========
+    topBarLayout->addStretch(); // <--- Сдвигает всё что ниже в правую часть
+
+    // ========= ПРАВАЯ ЧАСТЬ: КНОПКА НАСТРОЕК =========
     QPushButton *settingsBtn = new QPushButton("⚙️", this);
     settingsBtn->setFixedSize(30, 30);
     settingsBtn->setObjectName("btnSettings"); 
-    topBarLayout->addWidget(settingsBtn);
+    topBarLayout->addWidget(settingsBtn); // <--- Добавляем справа
 
     connect(settingsBtn, &QPushButton::clicked, this, [this]() {
         QWidget *overlay = new QWidget(this);
