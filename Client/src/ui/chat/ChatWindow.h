@@ -29,9 +29,8 @@ public:
 private:
     MessengerClient *client;
 
-    QListWidget *serversList;
-    QPushButton *createGroupButton; 
-    QPushButton *adminPanelBtn;
+    // Убрали serversList и createGroupButton, они больше не нужны
+    QPushButton *adminPanelBtn; // Оставили кнопку админа, перенесем ее в шапку
     AdminPanelWidget *adminWidget; 
 
     QListWidget *chatsList;
