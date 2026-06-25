@@ -62,7 +62,13 @@ void MessengerClient::handleReadyRead() {
             QString type = doc.object()["type"].toString();
 
             if (type == "auth_success") {
-                adminStatus = doc.object()["is_admin"].toBool(); 
+                adminStatus = doc.object()["is_admin"].toBool();
+                // ========== ЗАПОМИНАЕМ СВОЮ АВАТАРКУ ПРИ ВХОДЕ ==========
+                if (doc.object().contains("my_info")) {
+                    QJsonObject myInfo = doc.object()["my_info"].toObject();
+                    myAvatarBase64 = myInfo["avatar_base64"].toString();
+                }
+                // ========================================================
                 qDebug() << "СЕРВЕР ОТВЕТИЛ: Доступ разрешен! Админ ли мы:" << adminStatus;
                 emit authSuccess();
             }

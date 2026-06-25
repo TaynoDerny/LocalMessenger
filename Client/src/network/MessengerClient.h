@@ -15,6 +15,11 @@ public:
     QString getMyLogin() const { return myLogin; }
     bool isAdmin() const { return adminStatus; }
 
+    // ========== НОВЫЕ МЕТОДЫ ==========
+    QString getMyAvatarBase64() const { return myAvatarBase64; }
+    void setMyAvatarBase64(const QString& base64) { myAvatarBase64 = base64; }
+    // ==================================
+
     void createAccount(const QString& login, const QString& password, bool isAdmin);
     void requestAdminData();
     void sendResetPassword(const QString& targetLogin, const QString& newPassword);
@@ -25,6 +30,10 @@ private:
     QTcpSocket *socket;
     QString myLogin; 
     bool adminStatus = false;
+    
+    // ========== НОВАЯ ПЕРЕМЕННАЯ ==========
+    QString myAvatarBase64; 
+    // =====================================
 
 private slots:
     void handleConnected();
@@ -35,7 +44,7 @@ signals:
     void authSuccess();
     void authError();
     void messageReceived(const QString& sender, const QString& text); 
-    void userListReceived(const QJsonArray& users); // <--- ИЗМЕНЕНО ТУТ
+    void userListReceived(const QJsonArray& users);
     void historyReceived(const QString& chatWith, const QJsonArray& messages);
     void adminDataReceived(const QJsonArray& users);
 };

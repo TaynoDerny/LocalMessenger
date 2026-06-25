@@ -256,6 +256,19 @@ void SettingsDialog::loadNetworkSettings() {
 }
 
 void SettingsDialog::loadDefaultAvatar() {
+    // ========== 1. ПЫТАЕМСЯ ЗАГРУЗИТЬ АВАТАРКУ ИЗ КЛИЕНТА ==========
+    QString myBase64 = client->getMyAvatarBase64();
+    if (!myBase64.isEmpty()) {
+        QByteArray data = QByteArray::fromBase64(myBase64.toLatin1());
+        QPixmap myAvatar;
+        if (myAvatar.loadFromData(data)) {
+            avatarLabel->setPixmap(createCircularAvatar(myAvatar, 100));
+            return; // Если загрузилось, выходим!
+        }
+    }
+    // =================================================================
+
+    // ========== 2. ЗАГРУЗКА ПЛЕЙСХОЛДЕРА (если нет своей аватарки) ==========
     QPixmap defaultImage(100, 100);
     defaultImage.fill(Qt::transparent);
     QPixmap resourcePixmap(":/images/avatar_placeholder.png"); 
@@ -292,7 +305,8 @@ void SettingsDialog::onSaveProfile() {
     QString avatarBase64 = QString::fromLatin1(byteArray.toBase64());
 
     if (client) {
-        // Пока что передаем текущий логин вместо имени (на сервере обновится только аватарка)
+        // ========== ИСПРАВЛЕНИЕ: СОХРАНЯЕМ В ЛОКАЛЬНУЮ ПАМЯТЬ КЛИЕНТА ==========
+        client->setMyAvatarBase64(avatarBase64);
         client->updateProfile(client->getMyLogin(), avatarBase64);
         QMessageBox::information(this, "Успех", "Аватар успешно отправлен и обновится у всех пользователей!");
     } else {
