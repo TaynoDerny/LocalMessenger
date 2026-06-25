@@ -97,8 +97,11 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
         client->requestAdminData();
     });
 
-    QPushButton *settingsBtn = new QPushButton("⚙️", this);
-    settingsBtn->setFixedSize(30, 30);
+    // Создаем кнопку и ставим на неё иконку из ресурсов
+    QPushButton *settingsBtn = new QPushButton(this);
+    settingsBtn->setIcon(QIcon(":/images/settings_icon.png"));
+    settingsBtn->setIconSize(QSize(24, 24)); // Внутренний размер иконки
+    settingsBtn->setFixedSize(30, 30);       // Размер самой кнопки
     settingsBtn->setObjectName("btnSettings"); 
     connect(settingsBtn, &QPushButton::clicked, this, [this]() {
         QWidget *overlay = new QWidget(this);
