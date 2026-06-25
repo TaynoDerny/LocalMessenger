@@ -1,5 +1,5 @@
 #pragma once
-#include <QMainWindow> // <--- ИЗМЕНИЛИ НА QMAINWINDOW
+#include <QMainWindow> 
 #include <QListWidget>
 #include <QScrollArea>
 #include <QLineEdit>
@@ -21,7 +21,7 @@
 #include "../../network/MessengerClient.h"
 #include "../admin/AdminPanelWidget.h"
 
-class ChatWindow : public QMainWindow { // <--- ИЗМЕНИЛИ НА QMAINWINDOW
+class ChatWindow : public QMainWindow {
     Q_OBJECT
 public:
     explicit ChatWindow(MessengerClient *client, QWidget *parent = nullptr);
@@ -48,10 +48,11 @@ private:
     
     QHash<QString, QPixmap> userAvatars;
     QHash<QString, bool> userAdmins;
+    QHash<QString, QString> userDisplayNames; // <--- ДОБАВИЛИ КЕШ ИМЁН
 
     QPixmap createCircularAvatarFromBase64(const QString& base64, int size, bool /*isOnline*/ = false);
 
-    void addMessageToChat(const QString& sender, const QString& text);
+    void addMessageToChat(const QString& senderLogin, const QString& text);
     void clearChatMessages();
 
 private slots:

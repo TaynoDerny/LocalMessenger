@@ -2,8 +2,8 @@
 #include "../settings/SettingsDialog.h"
 #include <QScrollBar>
 #include <QTime>
-#include <QStatusBar> // ДОБАВИЛИ
-#include <QLabel>     // ДОБАВИЛИ
+#include <QStatusBar> 
+#include <QLabel>     
 
 // ==========================================================
 // ВНУТРЕННИЙ ВИДЖЕТ ОДНОГО СООБЩЕНИЯ
@@ -57,22 +57,20 @@ public:
 };
 
 // ==========================================================
-// ОСНОВНОЙ КЛАСС CHATWINDOW (ТЕПЕРЬ ОТ QMAINWINDOW)
+// ОСНОВНОЙ КЛАСС CHATWINDOW
 // ==========================================================
 ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
-    : QMainWindow(parent), client(client) { // <--- ИЗМЕНИЛИ БАЗОВЫЙ КЛАСС
+    : QMainWindow(parent), client(client) { 
 
     setAttribute(Qt::WA_DeleteOnClose);
     setWindowTitle("Мессенджер");
     resize(1280, 720);
 
-    // ================= ЦЕНТРАЛЬНЫЙ ВИДЖЕТ (ВМЕСТО ПРЯМОГО НАСЛЕДОВАНИЯ) =================
     QWidget *centralWidget = new QWidget(this);
     QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
     mainLayout->setContentsMargins(0, 0, 0, 0); 
     mainLayout->setSpacing(0);
 
-    // ================= 1. ОБЩИЙ КОНТЕЙНЕР ВЕРХНЕЙ ПАНЕЛИ =================
     QWidget *topBarContainer = new QWidget(this);
     topBarContainer->setFixedHeight(48);
     QHBoxLayout *topBarLayout = new QHBoxLayout(topBarContainer);
@@ -123,7 +121,6 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
     topBarLayout->addWidget(rightTopBar);
     mainLayout->addWidget(topBarContainer);
 
-    // ================= 2. КОНТЕЙНЕР С ДВУМЯ КОЛОНКАМИ =================
     QWidget *contentContainer = new QWidget(this);
     QHBoxLayout *contentLayout = new QHBoxLayout(contentContainer);
     contentLayout->setContentsMargins(0, 0, 0, 0); 
@@ -202,18 +199,13 @@ ChatWindow::ChatWindow(MessengerClient *client, QWidget *parent)
 
     mainLayout->addWidget(contentContainer);
 
-    // ================= УСТАНАВЛИВАЕМ ЦЕНТРАЛЬНЫЙ ВИДЖЕТ =================
     this->setCentralWidget(centralWidget);
 
-    // ================= СТРОКА СОСТОЯНИЯ (STATUS BAR) =================
     QStatusBar *statusBar = this->statusBar();
     QLabel *statusLabel = new QLabel("⚡ Статус: Подключено к серверу", this);
     statusBar->addWidget(statusLabel);
-    
-    // Стилизуем строку состояния, чтобы она сливалась с вашей темой
     statusBar->setStyleSheet("QStatusBar { background-color: #1A1A1E; color: #b9bbbe; border-top: 1px solid #3D3D3D; } QStatusBar QLabel { color: #b9bbbe; }");
 
-    // ================= НАЧАЛЬНЫЙ ЭКРАН И КОННЕКТЫ =================
     mainArea->setCurrentIndex(0);
 
     connect(messageInput, &QLineEdit::returnPressed, this, &ChatWindow::onSendClicked);
@@ -234,8 +226,12 @@ void ChatWindow::clearChatMessages() {
     messagesLayout->addStretch();
 }
 
-void ChatWindow::addMessageToChat(const QString& sender, const QString& text) {
-    QPixmap avatar = userAvatars.value(sender, QPixmap());
+void ChatWindow::addMessageToChat(const QString& senderLogin, const QString& text) {
+    QString displaySender = userDisplayNames.value(senderLogin, senderLogin);
+    int nl = displaySender.indexOf('\n');
+    if (nl != -1) displaySender = displaySender.left(nl);
+
+    QPixmap avatar = userAvatars.value(senderLogin, QPixmap());
     if (avatar.isNull()) {
         avatar = QPixmap(40, 40);
         avatar.fill(Qt::transparent);
@@ -247,9 +243,9 @@ void ChatWindow::addMessageToChat(const QString& sender, const QString& text) {
         p.drawText(avatar.rect(), Qt::AlignCenter, "?");
     }
 
-    bool isAdmin = userAdmins.value(sender, false);
+    bool isAdmin = userAdmins.value(senderLogin, false);
 
-    MessageWidget *widget = new MessageWidget(sender, text, avatar, isAdmin);
+    MessageWidget *widget = new MessageWidget(displaySender, text, avatar, isAdmin);
     messagesLayout->insertWidget(messagesLayout->count() - 1, widget);
 
     QScrollBar* bar = messagesArea->verticalScrollBar();
@@ -285,28 +281,46 @@ void ChatWindow::onHistoryReceived(const QString& chatWith, const QJsonArray& me
 
 void ChatWindow::onChatSelected(QListWidgetItem *item) {
     currentRecipient = item->data(Qt::UserRole).toString();
-    chatHeader->setText("<b>Чат с:</b> " + currentRecipient); 
+    QString fullName = item->data(Qt::UserRole + 1).toString(); // Берем чисто Имя+Фамилию
+    
+    chatHeader->setText("<b>Чат с:</b> " + fullName); 
     mainArea->setCurrentIndex(1);
     clearChatMessages();
     client->requestHistory(currentRecipient);
 }
 
+// ================= ОБНОВЛЕННЫЙ МЕТОД С КАСТОМНЫМ ВИДЖЕТОМ =================
 void ChatWindow::onUserListReceived(const QJsonArray& users) {
     chatsList->clear(); 
     userAvatars.clear();
     userAdmins.clear();
+    userDisplayNames.clear();
 
     for (const QJsonValue& val : users) {
         QJsonObject userObj = val.toObject();
         
         QString login = userObj["login"].toString();
-        QString displayName = userObj["display_name"].toString();
-        if (displayName.isEmpty()) displayName = login; 
+        QString firstName = userObj["first_name"].toString();
+        QString lastName = userObj["last_name"].toString();
+        QString jobTitle = userObj["job_title"].toString();
         bool isOnline = userObj["online"].toBool(); 
         bool isAdmin = userObj["is_admin"].toBool();
         QString avatarBase64 = userObj["avatar_base64"].toString();
 
         userAdmins[login] = isAdmin;
+
+        // ========== ФОРМИРУЕМ ИМЯ И ДОЛЖНОСТЬ ==========
+        QString fullName = login; // По умолчанию логин
+        QString displayNameStr = login;
+        if (!firstName.isEmpty() && !lastName.isEmpty()) {
+            fullName = firstName + " " + lastName;
+            displayNameStr = fullName;
+            if (!jobTitle.isEmpty()) {
+                displayNameStr += "\n" + jobTitle; // Для кеша
+            }
+        }
+        userDisplayNames[login] = displayNameStr; 
+        // ===============================================
 
         QPixmap avatarPixmapClean = createCircularAvatarFromBase64(avatarBase64, 36, false);
         userAvatars[login] = avatarPixmapClean;
@@ -316,18 +330,47 @@ void ChatWindow::onUserListReceived(const QJsonArray& users) {
         }
 
         QListWidgetItem *item = new QListWidgetItem(chatsList);
-        item->setText(displayName);
+        // Сохраняем скрытые данные
         item->setData(Qt::UserRole, login);
+        item->setData(Qt::UserRole + 1, fullName); // Чистое Имя+Фамилия для заголовка
 
-        QPixmap avatarPixmapWithStatus = createCircularAvatarFromBase64(avatarBase64, 36, isOnline);
-        if (!avatarPixmapWithStatus.isNull()) {
-            QIcon icon(avatarPixmapWithStatus);
-            icon.addPixmap(avatarPixmapWithStatus, QIcon::Selected);
-            icon.addPixmap(avatarPixmapWithStatus, QIcon::Active);
-            item->setIcon(icon);
+        // ========== СОЗДАЁМ КАСТОМНЫЙ ВИДЖЕТ ==========
+        QWidget *widget = new QWidget();
+        QHBoxLayout *layout = new QHBoxLayout(widget);
+        layout->setContentsMargins(10, 6, 10, 6);
+        layout->setSpacing(15);
+
+        // Аватарка
+        QLabel *avatarWidget = new QLabel();
+        avatarWidget->setPixmap(createCircularAvatarFromBase64(avatarBase64, 36, isOnline));
+        layout->addWidget(avatarWidget);
+
+        // Текстовый блок
+        QVBoxLayout *textLayout = new QVBoxLayout();
+        textLayout->setSpacing(2);
+
+        // Имя Фамилия
+        QLabel *nameLabel = new QLabel(fullName);
+        nameLabel->setStyleSheet("color: #dbdee1; font-size: 14px; font-weight: bold;");
+
+        // Должность
+        QLabel *jobLabel = new QLabel(jobTitle);
+        // ========== СТИЛЬ ДЛЯ ДОЛЖНОСТИ (ШРИФТ ЧУТЬ МЕНЬШЕ) ==========
+        jobLabel->setStyleSheet("color: #b9bbbe; font-size: 12px;");
+        // ================================================================
+        if (jobTitle.isEmpty()) {
+            jobLabel->hide(); // Если нет должности, прячем метку
         }
 
-        item->setForeground(QBrush(QColor("#dbdee1")));
+        textLayout->addWidget(nameLabel);
+        textLayout->addWidget(jobLabel);
+        layout->addLayout(textLayout);
+        layout->addStretch();
+
+        // Вставляем кастомный виджет в список
+        chatsList->setItemWidget(item, widget);
+        item->setSizeHint(widget->sizeHint());
+        // ==========================================================
     }
 }
 
