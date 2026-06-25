@@ -38,7 +38,7 @@ DatabaseManager::DatabaseManager() {
         QByteArray hashBytes = QCryptographicHash::hash(QString("1234").toUtf8(), QCryptographicHash::Sha256);
         QString defaultAdminHash = QString(hashBytes.toHex());
         
-        query.prepare("INSERT OR IGNORE INTO Users (login, password_hash, is_admin, display_name, avatar_base64, first_name, last_name, job_title, bio) VALUES ('admin', :hash, 1, 'Админ', '', 'Админ', 'Админов', 'Администратор', 'Главный администратор')");
+        query.prepare("INSERT OR IGNORE INTO Users (login, password_hash, is_admin, display_name, avatar_base64, first_name, last_name, job_title, bio) VALUES ('admin', :hash, 1, 'admin', '', '', '', '', '')");
         query.bindValue(":hash", defaultAdminHash);
         query.exec();
     } else {
