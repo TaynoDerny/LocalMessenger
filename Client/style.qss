@@ -143,6 +143,6 @@ QPushButton#saveProfileBtn:disabled {
 
 /* ================= ЛЕВАЯ ЧАСТЬ ВЕРХНЕЙ ПАНЕЛИ ================= */
 QWidget#leftTopBar {
-    background-color: #1A1A1E;
+    background-color: #121214;
     border-bottom: 1px solid #3D3D3D;
 }
