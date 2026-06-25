@@ -38,27 +38,25 @@ private:
 
     QLabel *chatHeader;
     
-    // ЗАМЕНА: вместо QTextEdit используем прокручиваемую область для красивого списка сообщений
     QScrollArea *messagesArea;
     QWidget *messagesContainer;
     QVBoxLayout *messagesLayout;
     
-    QLineEdit *messageInput; // Кнопку отправки убрали!
+    QLineEdit *messageInput;
 
     QString currentRecipient; 
     
-    // Кеш для аватарок и прав пользователей (чтобы не пересоздавать каждый раз)
     QHash<QString, QPixmap> userAvatars;
     QHash<QString, bool> userAdmins;
 
-    QPixmap createCircularAvatarFromBase64(const QString& base64, int size, bool isOnline);
+    // Убрали isOnline из параметров, так как больше не рисуем статус на аватарке
+    QPixmap createCircularAvatarFromBase64(const QString& base64, int size, bool /*isOnline*/ = false);
 
-    // Новая функция для добавления сообщения в чат
     void addMessageToChat(const QString& sender, const QString& text);
     void clearChatMessages();
 
 private slots:
-    void onSendClicked(); // Осталась для Enter и клика мыши (если вдруг)
+    void onSendClicked();
     void onMessageReceived(const QString& sender, const QString& text); 
     void onUserListReceived(const QJsonArray& users); 
     void onChatSelected(QListWidgetItem *item);  

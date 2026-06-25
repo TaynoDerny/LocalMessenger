@@ -12,7 +12,6 @@ QListWidget#serversList {
     border: none;
 }
 
-/* Кнопка создания группы (+) - вынесли из C++ */
 QPushButton#btnCreateGroup {
     border-radius: 25px; 
     background-color: #36393f; 
@@ -26,7 +25,6 @@ QPushButton#btnCreateGroup:hover {
     color: white;
 }
 
-/* Кнопка админ-панели (⚙️) - вынесли из C++ */
 QPushButton#btnAdminPanel {
     border-radius: 25px; 
     background-color: #36393f; 
@@ -40,7 +38,6 @@ QPushButton#btnAdminPanel:hover {
 
 /* ================= СРЕДНЯЯ ПАНЕЛЬ ================= */
 QWidget#friendsContainer {
-    /* Если нужен особый фон, поменяйте тут, иначе наследует от QWidget */
     background-color: #2B2D31; 
 }
 
@@ -50,7 +47,6 @@ QListWidget#chatsList {
     font-size: 14px;
 }
 
-/* Иконки и строки списка чатов - перенесли сюда */
 QListWidget#chatsList::item {
     padding: 2px 10px;
     min-height: 40px;
@@ -64,14 +60,12 @@ QListWidget#chatsList::item:selected {
     background-color: #2C2C30;
     color: white;
 }
-/* 3. Выбран И наведение мыши (ваше 4-е состояние) */
 QListWidget#chatsList::item:selected:hover {
-    background-color: #1D1D1E; /* Замените на ваш цвет */
+    background-color: #1D1D1E;
     color: white;
 }
 
 /* ================= ПРАВАЯ ПАНЕЛЬ (ОКНО ЧАТА) ================= */
-/* Верхняя шапка и кнопка настроек - перенесли сюда */
 QWidget#topBar {
     background-color: #1A1A1E; 
     border-bottom: 1px solid #3D3D3D;
@@ -87,32 +81,45 @@ QPushButton#btnSettings:hover {
     color: white;
 }
 
-/* Текстовое поле истории */
-QTextEdit#messagesDisplay {
+/* ================= СТИЛИ ЧАТА (БЛОКИ СООБЩЕНИЙ) ================= */
+QScrollArea#messagesArea {
     background-color: #1A1A1E;
     border: none;
-    padding: 10px;
 }
 
-/* Поле ввода сообщения */
+QWidget#messageWidget {
+    background-color: transparent;
+    border-radius: 8px;
+    padding: 4px 0px;
+}
+QWidget#messageWidget:hover {
+    background-color: #2B2D31; /* Цвет выделения при наведении */
+}
+
+QLabel#msgAvatarLabel {
+    background-color: transparent;
+    border: none;
+}
+
+QLabel#msgTimeLabel {
+    color: #72767d;
+    font-size: 12px;
+}
+
+QLabel#msgTextLabel {
+    color: #dcddde;
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+/* ================= ПОЛЕ ВВОДА ================= */
 QLineEdit#messageInput {
     background-color: #222327;
     border-radius: 8px;
-    padding: 10px;
+    padding: 10px 15px;
     border: none;
-}
-
-/* Кнопка "Отправить" */
-QPushButton#sendButton {
-    background-color: #5865F2;
-    color: white;
-    border-radius: 4px;
-    padding: 8px 16px;
-    border: none;
-    font-weight: bold;
-}
-QPushButton#sendButton:hover {
-    background-color: #4752C4; 
+    color: #dcddde;
+    font-size: 14px;
 }
 
 /* Оверлей настроек */
@@ -155,7 +162,5 @@ QLabel#dmLabel {
     padding-left: 16px;
     padding-top: 12px;
     padding-bottom: 4px;
-    
-    /* ========= ЦВЕТ ЗА ТЕКСТОМ ========= */
-    background-color: #121214; /* Поставьте любой HEX-цвет, который хотите */
+    background-color: #121214; 
 }
